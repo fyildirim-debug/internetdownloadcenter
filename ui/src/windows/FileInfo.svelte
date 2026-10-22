@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import FileIcon from '../lib/icons/FileIcon.svelte';
   import Icon from '../lib/icons/Icon.svelte';
-  import { api, closeWindow, EV, hashParams, on, pickFolder, setTitle } from '../lib/api';
+  import { EV, api, autoFit, closeWindow, hashParams, on, pickFolder, setTitle } from '../lib/api';
   import { t } from '../lib/i18n/index.svelte';
   import { formatSize, joinPath } from '../lib/format';
   import { app, categoryForName, categoryName, queueName, saveSettings } from '../lib/state.svelte';
@@ -54,7 +54,11 @@
       .then(fill)
       .catch((e) => (error = String(e)));
     on<PendingAdd>(EV.pending, (x) => x.token === token && fill(x)).then((u) => (off = u));
-    return () => off?.();
+    const unfit = autoFit(580, 200);
+    return () => {
+      off?.();
+      unfit();
+    };
   });
 
   function onCategory() {

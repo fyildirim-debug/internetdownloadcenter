@@ -147,6 +147,49 @@ export async function resizeWindow(width: number, height: number) {
   }
 }
 
+/** Pencereyi `.window` içeriğinin doğal yüksekliğine göre boyutlandırır. */
+export async function fitToContent(width: number, minHeight = 120, maxHeight = 760) {
+  const el = document.querySelector('.window') as HTMLElement | null;
+  if (!el) return;
+  const prev = el.style.height;
+  el.style.height = 'auto';
+  const h = Math.ceil(el.getBoundingClientRect().height);
+  el.style.height = prev;
+  if (h > 0) await resizeWindow(width, Math.min(maxHeight, Math.max(minHeight, h)));
+}
+
+/**
+ * İçerik değiştikçe pencereyi yeniden boyutlandırır (diyalog pencereleri için).
+ * Dönen işlev gözlemi durdurur.
+ */
+export function autoFit(width: number, minHeight = 120, maxHeight = 760): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let last = '';
+  const run = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      const el = document.querySelector('.window') as HTMLElement | null;
+      if (!el) return;
+      const prev = el.style.height;
+      el.style.height = 'auto';
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      el.style.height = prev;
+      const key = `${width}x${h}`;
+      if (h > 0 && key !== last) {
+        last = key;
+        resizeWindow(width, Math.min(maxHeight, Math.max(minHeight, h)));
+      }
+    }, 30);
+  };
+  const mo = new MutationObserver(run);
+  mo.observe(document.body, { subtree: true, childList: true, characterData: false, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'open'] });
+  run();
+  return () => {
+    mo.disconnect();
+    if (timer) clearTimeout(timer);
+  };
+}
+
 /** Klasör seçme penceresi. */
 export async function pickFolder(defaultPath?: string): Promise<string | null> {
   if (isTauri) {

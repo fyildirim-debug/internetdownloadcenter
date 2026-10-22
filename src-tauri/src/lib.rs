@@ -21,14 +21,17 @@ use tauri_plugin_notification::NotificationExt;
 
 use state::AppState;
 
+/// İşletim sisteminin dili: `tr` ya da `en`.
+pub fn sys_lang() -> &'static str {
+    let loc = sys_locale::get_locale().unwrap_or_default().to_lowercase();
+    if loc.starts_with("tr") { "tr" } else { "en" }
+}
+
 /// Arayüz dili: `tr` ya da `en`.
 pub fn lang(s: &Settings) -> String {
     match s.language.as_str() {
         "tr" | "en" => s.language.clone(),
-        _ => {
-            let loc = sys_locale::get_locale().unwrap_or_default().to_lowercase();
-            if loc.starts_with("tr") { "tr".into() } else { "en".into() }
-        }
+        _ => sys_lang().into(),
     }
 }
 
@@ -172,7 +175,7 @@ fn forward_events(app: AppHandle, engine: Engine) {
                     if let Some(d) = engine.get(&id) {
                         if !d.silent {
                             let detail = msg.split('|').nth(1).unwrap_or("").to_string();
-                            notify(&app, "failed", &format!("{} {}", d.file_name, detail).trim().to_string());
+                            notify(&app, "failed", format!("{} {}", d.file_name, detail).trim());
                         }
                     }
                 }

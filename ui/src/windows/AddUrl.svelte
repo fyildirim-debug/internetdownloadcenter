@@ -2,7 +2,7 @@
   // "URL Ekle" penceresi: adres (panodan dolar), isteğe bağlı yetkilendirme ve gelişmiş başlıklar.
   import { onMount } from 'svelte';
   import Icon from '../lib/icons/Icon.svelte';
-  import { api, closeWindow, hashParams, readClipboard, resizeWindow, setTitle } from '../lib/api';
+  import { api, autoFit, closeWindow, hashParams, readClipboard, setTitle } from '../lib/api';
   import { t } from '../lib/i18n/index.svelte';
   import { isValidUrl } from '../lib/format';
   import { emptyAddRequest } from '../lib/types';
@@ -30,9 +30,7 @@
     input?.select();
   });
 
-  $effect(() => {
-    resizeWindow(520, 160 + (useAuth ? 34 : 0) + (advanced ? 190 : 0) + (invalid ? 34 : 0));
-  });
+  onMount(() => autoFit(540, 140));
 
   async function ok() {
     const u = url.trim();

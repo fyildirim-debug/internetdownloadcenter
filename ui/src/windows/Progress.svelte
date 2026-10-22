@@ -6,7 +6,7 @@
   import SegmentBar from '../lib/components/SegmentBar.svelte';
   import SpeedGraph from '../lib/components/SpeedGraph.svelte';
   import FileIcon from '../lib/icons/FileIcon.svelte';
-  import { api, closeWindow, EV, hashParams, on, resizeWindow, setTitle } from '../lib/api';
+  import { api, autoFit, closeWindow, EV, hashParams, on, setTitle } from '../lib/api';
   import { t } from '../lib/i18n/index.svelte';
   import { formatEta, formatError, formatPercent, formatSize, formatSpeed, percent } from '../lib/format';
   import type { AfterAction, DownloadDetail, DownloadView, ProgressTick } from '../lib/types';
@@ -35,8 +35,6 @@
   }
 
   const W = 470;
-  const H_SMALL = 352;
-  const H_BIG = 610;
 
   onMount(() => {
     const offs: (() => void)[] = [];
@@ -73,7 +71,7 @@
       if (v.status === 'completed' && was !== 'completed') setTimeout(closeWindow, 600);
     }).then((u) => offs.push(u));
     on<string[]>(EV.removed, (ids) => ids.includes(id) && closeWindow()).then((u) => offs.push(u));
-    resizeWindow(W, details ? H_BIG : H_SMALL);
+    offs.push(autoFit(W, 240));
     return () => offs.forEach((f) => f());
   });
 
@@ -104,7 +102,6 @@
     } catch {
       /* yok */
     }
-    resizeWindow(W, details ? H_BIG : H_SMALL);
   }
 
   async function pauseResume() {

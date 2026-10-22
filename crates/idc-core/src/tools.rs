@@ -100,7 +100,10 @@ impl Tools {
         match self.path(name) {
             Some(p) => ToolInfo {
                 installed: true,
-                version: version_of(&p, arg).map(|v| v.replace("ffmpeg version ", "").split(' ').next().unwrap_or("").to_string()),
+                version: version_of(&p, arg).map(|v| {
+                    let v = v.trim_start_matches("ffmpeg version ").trim_start_matches("deno ");
+                    v.split(' ').next().unwrap_or("").to_string()
+                }),
                 source: if p.starts_with(self.dir()) { "managed".into() } else { "system".into() },
                 path: Some(p.to_string_lossy().into()),
             },

@@ -2,11 +2,12 @@
   // Hakkında penceresi.
   import { onMount } from 'svelte';
   import ToolIcon from '../lib/icons/ToolIcon.svelte';
-  import { api, closeWindow, setTitle } from '../lib/api';
+  import { api, autoFit, closeWindow, setTitle } from '../lib/api';
   import { t } from '../lib/i18n/index.svelte';
   import type { AppInfo } from '../lib/types';
 
   let info = $state<AppInfo | null>(null);
+  onMount(() => autoFit(460, 200));
   onMount(async () => {
     setTitle(t('about.title'));
     info = await api.appInfo();

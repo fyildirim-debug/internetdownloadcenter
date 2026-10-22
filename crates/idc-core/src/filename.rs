@@ -104,7 +104,7 @@ fn unquote(v: &str) -> String {
 /// Adresin son yol parçasından dosya adı.
 pub fn from_url(url: &str) -> Option<String> {
     let u = url::Url::parse(url).ok()?;
-    let seg = u.path_segments()?.filter(|s| !s.is_empty()).last()?.to_string();
+    let seg = u.path_segments()?.filter(|s| !s.is_empty()).next_back()?.to_string();
     let decoded = percent_decode_str(&seg).decode_utf8_lossy().into_owned();
     let s = sanitize(&decoded);
     if s.is_empty() { None } else { Some(s) }

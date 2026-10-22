@@ -545,9 +545,7 @@ async fn fetch_slot(ctx: &Arc<Ctx>, wid: usize, start: u64, end: Option<u64>, fi
     };
 
     // Çıkışta arabellekte kalan veriyi her durumda diske yaz; alınan veri boşa gitmesin.
-    if let Err(e) = flush(ctx, wid, &f, &mut buf, &mut buf_off).await {
-        return Err(e);
-    }
+    flush(ctx, wid, &f, &mut buf, &mut buf_off).await?;
 
     match result {
         Ok(true) => Ok(()),
@@ -697,7 +695,7 @@ fn update_views(ctx: &Arc<Ctx>) {
                 pos: s.recv,
                 active: s.worker.is_some(),
                 speed: if s.worker.is_some() { s.speed } else { 0 },
-                info: if s.done() { "done".into() } else if s.worker.is_some() { s.info.to_string() } else { s.info.to_string() },
+                info: if s.done() { "done".into() } else { s.info.to_string() },
             }
         })
         .collect();

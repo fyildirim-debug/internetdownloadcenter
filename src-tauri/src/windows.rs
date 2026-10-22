@@ -17,16 +17,16 @@ fn spec(kind: &str) -> Spec {
     let s = |w, h, min, r, per| Spec { width: w, height: h, min, resizable: r, per };
     match kind {
         "main" => s(1040.0, 640.0, Some((760.0, 420.0)), true, None),
-        "progress" => s(470.0, 345.0, None, true, Some("id")),
-        "fileinfo" => s(580.0, 350.0, None, true, Some("token")),
-        "complete" => s(480.0, 270.0, None, false, Some("id")),
-        "addurl" => s(540.0, 290.0, None, true, None),
+        "progress" => s(470.0, 300.0, None, true, Some("id")),
+        "fileinfo" => s(580.0, 260.0, None, true, Some("token")),
+        "complete" => s(480.0, 240.0, None, false, Some("id")),
+        "addurl" => s(540.0, 200.0, None, true, None),
         "options" => s(780.0, 580.0, Some((640.0, 460.0)), true, None),
         "scheduler" => s(780.0, 540.0, Some((640.0, 420.0)), true, None),
         "batch" => s(600.0, 500.0, None, true, None),
         "grabber" => s(800.0, 580.0, Some((600.0, 420.0)), true, None),
         "media" => s(640.0, 600.0, Some((520.0, 420.0)), true, Some("token")),
-        "about" => s(460.0, 380.0, None, false, None),
+        "about" => s(460.0, 340.0, None, false, None),
         "wizard" => s(760.0, 560.0, Some((640.0, 480.0)), true, None),
         "properties" => s(580.0, 520.0, None, true, Some("id")),
         "links" => s(800.0, 580.0, Some((600.0, 400.0)), true, Some("token")),
@@ -63,7 +63,8 @@ pub fn open(app: &AppHandle, kind: &str, params: HashMap<String, String>) -> tau
         .inner_size(sp.width, sp.height)
         .resizable(sp.resizable)
         .center()
-        .focused(true);
+        .focused(true)
+        .initialization_script(format!("window.__IDC_SYS_LANG__ = '{}';", crate::sys_lang()));
     if let Some((w, h)) = sp.min {
         b = b.min_inner_size(w, h);
     }

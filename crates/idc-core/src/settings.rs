@@ -17,6 +17,7 @@ pub const DEFAULT_CAPTURE_EXTENSIONS: &[&str] = &[
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
+#[derive(Default)]
 pub struct Category {
     pub id: String,
     /// Yerleşik kategorilerde arayüz bu adı dil dosyasından çevirir.
@@ -26,11 +27,6 @@ pub struct Category {
     pub builtin: bool,
 }
 
-impl Default for Category {
-    fn default() -> Self {
-        Self { id: String::new(), name: String::new(), extensions: vec![], save_dir: String::new(), builtin: false }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]

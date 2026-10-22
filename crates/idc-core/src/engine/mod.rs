@@ -365,7 +365,7 @@ impl Engine {
         let view = self.inner.with(&id, |d| make_view(d, None)).unwrap();
         self.inner.emit(EngineEvent::Changed(view));
         if req.start {
-            self.start(&[id.clone()]);
+            self.start(std::slice::from_ref(&id));
         } else if req.queue_id.is_some() {
             self.inner.update(&id, |d| d.status = Status::Queued);
         }
@@ -786,11 +786,11 @@ impl Engine {
             loop {
                 tick.tick().await;
                 n += 1;
-                engine.progress_tick(n % 4 == 0);
-                if n % 8 == 0 {
+                engine.progress_tick(n.is_multiple_of(4));
+                if n.is_multiple_of(8) {
                     engine.save_if_dirty();
                 }
-                if n % 4 == 0 {
+                if n.is_multiple_of(4) {
                     engine.check_schedules();
                     engine.pump();
                 }

@@ -5,8 +5,8 @@
   "version": "1.0.0",
   "identifier": "com.furkanyildirim.idc",
   "build": {
-    "beforeDevCommand": "npm --prefix ../ui run dev",
-    "beforeBuildCommand": "npm --prefix ../ui run build && node ../extension/build.mjs",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build && node ../extension/build.mjs",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../ui/dist"
   },

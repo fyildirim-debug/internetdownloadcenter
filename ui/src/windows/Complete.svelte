@@ -2,7 +2,7 @@
   // "İndirme tamamlandı" penceresi.
   import { onMount } from 'svelte';
   import FileIcon from '../lib/icons/FileIcon.svelte';
-  import { api, closeWindow, hashParams, setTitle } from '../lib/api';
+  import { api, autoFit, closeWindow, hashParams, setTitle } from '../lib/api';
   import { t } from '../lib/i18n/index.svelte';
   import { formatEta, formatSize, formatSpeed, joinPath } from '../lib/format';
   import { app, playDoneSound, saveSettings } from '../lib/state.svelte';
@@ -11,6 +11,8 @@
   const id = hashParams().get('id') ?? '';
   let d = $state<DownloadDetail | null>(null);
   let dontShow = $state(false);
+
+  onMount(() => autoFit(480, 180));
 
   onMount(async () => {
     setTitle(t('complete.title'));

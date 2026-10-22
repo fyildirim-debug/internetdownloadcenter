@@ -12,7 +12,9 @@ const state = $state<{ lang: Lang }>({ lang: detect('auto') });
 /** Ayar değerinden ('auto', 'tr', 'en') gerçek dili çıkarır. */
 export function detect(setting: string): Lang {
   if (setting === 'tr' || setting === 'en') return setting;
-  const nav = (typeof navigator !== 'undefined' && navigator.language) || 'tr';
+  // Uygulama sistem dilini pencereye enjekte eder (WebKit her zaman doğru dili bildirmez).
+  const sys = typeof window !== 'undefined' ? (window as unknown as { __IDC_SYS_LANG__?: string }).__IDC_SYS_LANG__ : undefined;
+  const nav = sys || (typeof navigator !== 'undefined' && navigator.language) || 'tr';
   return nav.toLowerCase().startsWith('tr') ? 'tr' : 'en';
 }
 
