@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Name={{name}}
+GenericName=Download Manager
+GenericName[tr]=İndirme Yöneticisi
+Comment=Fast multi-connection download manager
+Comment[tr]=Hızlı, çok bağlantılı indirme yöneticisi
+Exec={{exec}} %U
+Icon={{icon}}
+Terminal=false
+Categories=Network;FileTransfer;Utility;
+Keywords=download;downloader;manager;idm;video;youtube;indir;indirme;
+MimeType=x-scheme-handler/idc;
+StartupWMClass=internet-download-center
+Actions=AddUrl;
+
+[Desktop Action AddUrl]
+Name=Add URL
+Name[tr]=URL ekle
+Exec={{exec}} --add-url

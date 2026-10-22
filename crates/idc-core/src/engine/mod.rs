@@ -646,6 +646,15 @@ impl Engine {
         }
     }
 
+    /// Tarayıcıdan yeni oturum bilgisiyle gelen aynı dosya: adresi ve çerezleri yenile.
+    pub fn refresh_request(&self, id: &str, req: RequestInfo) {
+        self.inner.update(id, |d| {
+            d.request = req;
+            d.final_url = None;
+            d.error = None;
+        });
+    }
+
     // ---- Kuyruklar ----
 
     pub fn start_queue(&self, queue_id: &str) {

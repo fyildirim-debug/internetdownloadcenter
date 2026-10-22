@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/idc-core", "crates/idc-host"]
+members = ["crates/idc-core", "crates/idc-host", "src-tauri"]
 
 [workspace.package]
 version = "1.0.0"

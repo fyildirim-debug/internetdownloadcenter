@@ -1,0 +1,490 @@
+/* IDC — klasik Windows masaüstü görünümü. Tüm renkler buradaki belirteçlerden gelir. */
+
+:root {
+  --font: 'Segoe UI', 'Noto Sans', 'Ubuntu', 'Cantarell', 'DejaVu Sans', Tahoma, sans-serif;
+  --fs: 12px;
+  --fs-small: 11px;
+
+  --bg: #f0f0f0;
+  --bg-2: #e6e8eb;
+  --panel: #ffffff;
+  --text: #1b1b1b;
+  --text-dim: #5f6670;
+  --text-disabled: #9aa0a8;
+  --border: #a9aeb5;
+  --border-light: #d4d7dc;
+  --border-dark: #6f757d;
+
+  --sel: #cce4fb;
+  --sel-border: #84bdf0;
+  --sel-focus: #3399ff;
+  --sel-focus-text: #ffffff;
+  --hover: #e5f1fb;
+  --hover-border: #a9d1f4;
+
+  --menubar: linear-gradient(#fdfdfd, #eef0f3);
+  --toolbar: linear-gradient(#ffffff 0%, #f1f3f6 45%, #e2e6ec 100%);
+  --toolbar-border: #b6bcc6;
+  --header: linear-gradient(#ffffff, #eceef1);
+  --header-border: #c9cdd3;
+
+  --btn: linear-gradient(#fbfbfb, #e3e5e8);
+  --btn-hover: linear-gradient(#f1f8fe, #d6e9fa);
+  --btn-active: linear-gradient(#cfe4f8, #e3effa);
+  --btn-border: #8e949c;
+
+  --input: #ffffff;
+  --input-border: #8e949c;
+  --input-focus: #3c8de0;
+
+  --progress-bg: #ffffff;
+  --progress-border: #8a9099;
+  --progress-fill: linear-gradient(#7fc0ff, #2a83e0 50%, #1f6fc8 51%, #4d9ef0);
+  --progress-done: linear-gradient(#8fe07d, #3ea52c 50%, #2e8f1f 51%, #5dbd4a);
+  --progress-paused: linear-gradient(#ffe08a, #e0a516 50%, #c98d08 51%, #ebb63a);
+  --progress-error: linear-gradient(#ff9b90, #d33a2c 50%, #b92417 51%, #e15a4b);
+  --seg-fill: #2a6fd6;
+  --seg-start: #ff4fa3;
+  --seg-bg: #ffffff;
+
+  --row-alt: #f7f9fb;
+  --link: #0b5fbd;
+  --ok: #1c8a12;
+  --warn: #9c6c06;
+  --warn-bg: #fff7d6;
+  --warn-border: #e6cf7a;
+  --err: #c0251a;
+  --err-bg: #fde8e6;
+  --info-bg: #e8f2fd;
+  --info-border: #a9cdf2;
+
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --menu-shadow: 2px 3px 6px rgba(0, 0, 0, 0.28);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #23262b;
+  --bg-2: #1c1f23;
+  --panel: #191b1f;
+  --text: #e6e8eb;
+  --text-dim: #9aa2ad;
+  --text-disabled: #5c636d;
+  --border: #474c55;
+  --border-light: #33373e;
+  --border-dark: #5d636d;
+
+  --sel: #26466b;
+  --sel-border: #3a6aa3;
+  --sel-focus: #2f6fbd;
+  --sel-focus-text: #ffffff;
+  --hover: #2b3440;
+  --hover-border: #3d5470;
+
+  --menubar: linear-gradient(#2c3036, #26292e);
+  --toolbar: linear-gradient(#30343a 0%, #2a2d33 50%, #23262b 100%);
+  --toolbar-border: #3d424a;
+  --header: linear-gradient(#2e3238, #272a2f);
+  --header-border: #3d424a;
+
+  --btn: linear-gradient(#3a3f46, #2f333a);
+  --btn-hover: linear-gradient(#3b4a5c, #33414f);
+  --btn-active: linear-gradient(#2b3a4c, #34465a);
+  --btn-border: #565c66;
+
+  --input: #15171a;
+  --input-border: #4c525b;
+  --input-focus: #4a95e6;
+
+  --progress-bg: #15171a;
+  --progress-border: #50565f;
+  --seg-bg: #15171a;
+  --seg-fill: #3d8ef0;
+
+  --row-alt: #1d2024;
+  --link: #6fb2ff;
+  --ok: #5dd04a;
+  --warn: #e7c25a;
+  --warn-bg: #3a3320;
+  --warn-border: #6b5b2a;
+  --err: #ff7468;
+  --err-bg: #3d2222;
+  --info-bg: #1f2c3b;
+  --info-border: #345170;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+#app {
+  height: 100%;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+input[type='text'],
+input[type='url'],
+input[type='number'],
+input[type='password'],
+input[type='time'],
+input[type='date'],
+input:not([type]),
+textarea,
+select {
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: 2px;
+  padding: 3px 5px;
+  height: 23px;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+  min-width: 0;
+}
+
+textarea {
+  height: auto;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+select {
+  padding: 1px 4px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--input-focus) 35%, transparent);
+}
+
+input[readonly] {
+  background: var(--bg);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  margin: 0 5px 0 0;
+  vertical-align: -2px;
+  accent-color: #2a83e0;
+}
+
+label {
+  user-select: none;
+}
+
+button,
+.btn {
+  background: var(--btn);
+  border: 1px solid var(--btn-border);
+  border-radius: 3px;
+  padding: 0 12px;
+  min-width: 75px;
+  height: 24px;
+  cursor: default;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+button:hover:not(:disabled) {
+  background: var(--btn-hover);
+  border-color: #3c8de0;
+}
+
+button:active:not(:disabled) {
+  background: var(--btn-active);
+}
+
+button:focus-visible {
+  outline: 1px dotted var(--text);
+  outline-offset: -4px;
+}
+
+button:disabled {
+  color: var(--text-disabled);
+  border-color: var(--border-light);
+}
+
+button.primary {
+  border-color: #3c7fcf;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #3c8de0 40%, transparent);
+}
+
+button.small {
+  min-width: 0;
+  padding: 0 7px;
+  height: 22px;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  cursor: pointer;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+fieldset {
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  margin: 0 0 8px;
+  padding: 6px 10px 9px;
+}
+legend {
+  padding: 0 4px;
+  color: var(--text-dim);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border-light);
+  margin: 8px 0;
+}
+
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-2);
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 70%, var(--bg));
+  border: 3px solid var(--bg-2);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-dark);
+}
+::-webkit-scrollbar-corner {
+  background: var(--bg-2);
+}
+
+/* ---------- Ortak pencere düzeni ---------- */
+
+.window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.window .grow {
+  flex: 1;
+  min-height: 0;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  flex: none;
+}
+
+.buttons .left {
+  margin-right: auto;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.form > .full {
+  grid-column: 1 / -1;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row > input,
+.row > select {
+  flex: 1;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 2px 0;
+  line-height: 1.35;
+}
+.check input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+.small {
+  font-size: var(--fs-small);
+}
+
+.mono {
+  font-family: 'Cascadia Mono', 'Consolas', 'DejaVu Sans Mono', monospace;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.notice {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border: 1px solid var(--info-border);
+  background: var(--info-bg);
+  border-radius: 3px;
+  line-height: 1.4;
+}
+.notice.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+}
+.notice.error {
+  background: var(--err-bg);
+  border-color: color-mix(in srgb, var(--err) 50%, transparent);
+}
+
+/* Liste/tablolar */
+.table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  overflow: auto;
+}
+
+table.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+table.grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--header);
+  border-right: 1px solid var(--header-border);
+  border-bottom: 1px solid var(--header-border);
+  font-weight: normal;
+  text-align: left;
+  padding: 0 6px;
+  height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+table.grid td {
+  padding: 0 6px;
+  height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid transparent;
+}
+
+table.grid tbody tr:hover td {
+  background: var(--hover);
+}
+
+table.grid tbody tr.selected td {
+  background: var(--sel);
+}
+
+table.grid .num {
+  text-align: right;
+}
+
+/* Sekmeler */
+.tabs {
+  display: flex;
+  gap: 0;
+  padding-left: 2px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.tabs button {
+  min-width: 0;
+  height: 23px;
+  border-radius: 3px 3px 0 0;
+  border-bottom: none;
+  margin-right: -1px;
+  margin-bottom: -1px;
+  background: var(--bg-2);
+  padding: 0 8px;
+  position: relative;
+  top: 1px;
+}
+.tabs button.active {
+  background: var(--panel);
+  height: 25px;
+  top: 0;
+  z-index: 1;
+  border-color: var(--border);
+}
+.tab-body {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;
+  padding: 10px 12px;
+  overflow: auto;
+}
+
+/* Tablolarda onay kutusu hücreleri */
+table.grid td:has(> input[type='checkbox']:only-child),
+table.grid td:has(> input[type='radio']:only-child) {
+  padding: 0 0 0 6px;
+  text-overflow: clip;
+}

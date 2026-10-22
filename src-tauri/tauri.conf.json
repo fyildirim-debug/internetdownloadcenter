@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Internet Download Center",
+  "mainBinaryName": "internet-download-center",
+  "version": "1.0.0",
+  "identifier": "com.furkanyildirim.idc",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../ui run dev",
+    "beforeBuildCommand": "npm --prefix ../ui run build && node ../extension/build.mjs",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [],
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' data: blob: https: http:; style-src 'self' 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "deb", "rpm", "appimage"],
+    "publisher": "Furkan YILDIRIM",
+    "copyright": "© 2026 Furkan YILDIRIM",
+    "category": "Utility",
+    "shortDescription": "Hızlı, çok parçalı indirme yöneticisi",
+    "longDescription": "Internet Download Center: dosyaları 16 parçaya kadar bölerek hızlandıran, tarayıcıdan indirmeleri ve videoları yakalayan, zamanlayıcılı ve kuyruklu indirme yöneticisi.",
+    "homepage": "https://github.com/fyildirim-debug/internetdownloadcenter",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": ["binaries/idc-host"],
+    "resources": {
+      "../extension/build/chromium/": "extension/chromium/",
+      "../extension/build/idc-firefox.xpi": "extension/idc-firefox.xpi",
+      "../extension/build/idc-chromium.zip": "extension/idc-chromium.zip"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libayatana-appindicator3-1"],
+        "section": "net",
+        "postInstallScript": "../packaging/linux/postinst.sh",
+        "postRemoveScript": "../packaging/linux/postrm.sh",
+        "desktopTemplate": "../packaging/linux/internet-download-center.desktop"
+      },
+      "rpm": {
+        "depends": ["libayatana-appindicator-gtk3"],
+        "postInstallScript": "../packaging/linux/postinst.sh",
+        "postRemoveScript": "../packaging/linux/postrm.sh",
+        "desktopTemplate": "../packaging/linux/internet-download-center.desktop"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Turkish", "English"],
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "../packaging/windows/hooks.nsh"
+      }
+    }
+  },
+  "plugins": {}
+}
