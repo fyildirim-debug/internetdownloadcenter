@@ -9,6 +9,8 @@ pub const HOST_NAME: &str = "com.furkanyildirim.idc";
 pub const CHROMIUM_ID: &str = "khmbnekbmjoegchdepkfehmenkbfmbpd";
 pub const GECKO_ID: &str = "idc@furkanyildirim.com";
 
+// Alanların bir kısmı yalnız Linux'ta, bir kısmı yalnız Windows'ta okunur.
+#[allow(dead_code)]
 struct Known {
     id: &'static str,
     name: &'static str,
@@ -23,7 +25,6 @@ struct Known {
     page: &'static str,
     /// Windows kayıt defteri anahtarı (HKCU\Software\...).
     win_key: &'static str,
-    #[cfg_attr(unix, allow(dead_code))]
     /// Windows'ta olası çalıştırılabilir yollar (%ProgramFiles%, %LOCALAPPDATA% göreli).
     win_paths: &'static [&'static str],
 }
@@ -42,11 +43,13 @@ const BROWSERS: &[Known] = &[
     Known { id: "waterfox", name: "Waterfox", family: "firefox", bins: &["waterfox"], conf: &[".waterfox"], hosts: &[".waterfox/native-messaging-hosts"], flatpak: "net.waterfox.waterfox", page: "about:addons", win_key: r"Software\Waterfox\NativeMessagingHosts", win_paths: &[r"Waterfox\waterfox.exe"] },
 ];
 
+#[cfg_attr(windows, allow(dead_code))]
 fn which(bin: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path).map(|d| d.join(bin)).find(|p| p.is_file())
 }
 
+#[cfg_attr(windows, allow(dead_code))]
 fn home() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
 }
@@ -161,12 +164,32 @@ fn write_manifest_file(family: &str, host: &Path) -> std::io::Result<PathBuf> {
     Ok(p)
 }
 
-fn is_registered(k: &Known) -> bool {
+/// Kullanıcı düzeyinde kayıt var mı (uygulamanın kendisinin yazdığı).
+fn user_registered(k: &Known) -> bool {
     #[cfg(unix)]
     {
         k.hosts.iter().any(|h| home().join(h).join(format!("{HOST_NAME}.json")).exists())
-            || (k.family == "chromium" && Path::new("/etc/opt/chrome/native-messaging-hosts").join(format!("{HOST_NAME}.json")).exists())
-            || (k.family == "firefox" && Path::new("/usr/lib/mozilla/native-messaging-hosts").join(format!("{HOST_NAME}.json")).exists())
+    }
+    #[cfg(windows)]
+    {
+        is_registered(k)
+    }
+}
+
+/// Kullanıcı ya da sistem düzeyinde (deb/rpm paketinin yazdığı) kayıt var mı.
+fn is_registered(k: &Known) -> bool {
+    #[cfg(unix)]
+    {
+        let sys: &[&str] = match (k.family, k.id) {
+            ("firefox", _) => &["/usr/lib/mozilla/native-messaging-hosts", "/usr/lib64/mozilla/native-messaging-hosts"],
+            (_, "chromium") => &["/etc/chromium/native-messaging-hosts"],
+            (_, "edge") => &["/etc/opt/edge/native-messaging-hosts"],
+            (_, "brave") => &["/etc/opt/brave/native-messaging-hosts", "/etc/opt/chrome/native-messaging-hosts"],
+            (_, "vivaldi") => &["/etc/opt/vivaldi/native-messaging-hosts", "/etc/opt/chrome/native-messaging-hosts"],
+            (_, "opera") => &["/etc/opt/opera/native-messaging-hosts", "/etc/opt/chrome/native-messaging-hosts"],
+            _ => &["/etc/opt/chrome/native-messaging-hosts"],
+        };
+        user_registered(k) || sys.iter().any(|d| Path::new(d).join(format!("{HOST_NAME}.json")).exists())
     }
     #[cfg(windows)]
     {
@@ -258,7 +281,7 @@ pub fn refresh(app: &AppHandle) {
         let _ = write_manifest_file(fam, &host);
     }
     for k in BROWSERS {
-        if is_registered(k) {
+        if user_registered(k) {
             let _ = register(k, &host);
         }
     }
@@ -267,9 +290,22 @@ pub fn refresh(app: &AppHandle) {
 #[cfg(unix)]
 fn register(k: &Known, host: &Path) -> anyhow::Result<()> {
     let data = serde_json::to_vec_pretty(&manifest(k.family, host))?;
-    for h in k.hosts {
+    let has_bin = k.bins.iter().any(|b| which(b).is_some());
+    let mut wrote = false;
+    for (i, h) in k.hosts.iter().enumerate() {
         let dir = home().join(h);
-        // Firefox klasörü yoksa (tarayıcı hiç açılmamış) yine de oluştur.
+        // Yalnız var olan tarayıcı klasörlerine yaz; hiç açılmamış ama kurulu tarayıcı için ilk klasörü oluştur.
+        let parent_exists = dir.parent().map(|p| p.exists()).unwrap_or(false);
+        if !(parent_exists || (i == 0 && has_bin)) {
+            continue;
+        }
+        std::fs::create_dir_all(&dir)?;
+        std::fs::write(dir.join(format!("{HOST_NAME}.json")), &data)?;
+        wrote = true;
+    }
+    if !wrote && !flatpak_installed(k.flatpak) {
+        // Tarayıcı algılanamadı ama kullanıcı yine de istedi: ilk klasöre yaz.
+        let dir = home().join(k.hosts[0]);
         std::fs::create_dir_all(&dir)?;
         std::fs::write(dir.join(format!("{HOST_NAME}.json")), &data)?;
     }
@@ -370,6 +406,7 @@ pub fn os_status(app: &AppHandle) -> OsIntegration {
     let url_handler = {
         let out = std::process::Command::new("xdg-mime").args(["query", "default", "x-scheme-handler/idc"]).output();
         out.map(|o| String::from_utf8_lossy(&o.stdout).contains("internet-download-center")).unwrap_or(false)
+            || mimeapps_get().map(|v| v.contains("internet-download-center")).unwrap_or(false)
     };
     #[cfg(windows)]
     let url_handler = {
@@ -436,10 +473,78 @@ fn set_url_handler(on: bool) -> anyhow::Result<()> {
         std::fs::write(&path, body)?;
         let _ = std::process::Command::new("update-desktop-database").arg(path.parent().unwrap()).status();
         let _ = std::process::Command::new("xdg-mime").args(["default", "internet-download-center-handler.desktop", "x-scheme-handler/idc"]).status();
+        // xdg-utils kurulu olmayabilir: mimeapps.list'e doğrudan da yaz.
+        mimeapps_set(Some("internet-download-center-handler.desktop"))?;
     } else {
         let _ = std::fs::remove_file(&path);
+        mimeapps_set(None)?;
     }
     Ok(())
+}
+
+#[cfg(unix)]
+fn mimeapps_path() -> PathBuf {
+    dirs::config_dir().unwrap_or_else(|| home().join(".config")).join("mimeapps.list")
+}
+
+#[cfg(unix)]
+fn mimeapps_get() -> Option<String> {
+    let text = std::fs::read_to_string(mimeapps_path()).ok()?;
+    let mut in_default = false;
+    for line in text.lines() {
+        let l = line.trim();
+        if l.starts_with('[') {
+            in_default = l == "[Default Applications]";
+        } else if in_default {
+            if let Some(v) = l.strip_prefix("x-scheme-handler/idc=") {
+                return Some(v.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// `[Default Applications]` bölümündeki `x-scheme-handler/idc` satırını yazar ya da siler.
+#[cfg(unix)]
+fn mimeapps_set(desktop: Option<&str>) -> std::io::Result<()> {
+    let path = mimeapps_path();
+    let text = std::fs::read_to_string(&path).unwrap_or_default();
+    let mut out: Vec<String> = vec![];
+    let mut in_default = false;
+    let mut found_section = false;
+    for line in text.lines() {
+        let l = line.trim();
+        if l.starts_with('[') {
+            if in_default {
+                if let Some(d) = desktop {
+                    out.push(format!("x-scheme-handler/idc={d}"));
+                }
+            }
+            in_default = l == "[Default Applications]";
+            found_section |= in_default;
+            out.push(line.to_string());
+            continue;
+        }
+        if in_default && l.starts_with("x-scheme-handler/idc=") {
+            continue;
+        }
+        out.push(line.to_string());
+    }
+    if in_default {
+        if let Some(d) = desktop {
+            out.push(format!("x-scheme-handler/idc={d}"));
+        }
+    }
+    if !found_section {
+        if let Some(d) = desktop {
+            out.push("[Default Applications]".into());
+            out.push(format!("x-scheme-handler/idc={d}"));
+        }
+    }
+    if let Some(p) = path.parent() {
+        std::fs::create_dir_all(p)?;
+    }
+    std::fs::write(&path, out.join("\n") + "\n")
 }
 
 #[cfg(windows)]

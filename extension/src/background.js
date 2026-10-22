@@ -139,6 +139,9 @@ async function send(msg, timeout = NATIVE_TIMEOUT_MS) {
     return res;
   } catch (e) {
     if (e.kind === 'missing') setAppOk(false);
+    // Köprü kurulu ama uygulama kapalı: köprü indirme gelince uygulamayı kendisi başlatır,
+    // bu yüzden yakalama açık kalır (önbellekteki ayarlarla).
+    else if (e.kind === 'app' && /app_unavailable/.test(e.message || '')) setAppOk(!!state.config);
     throw e;
   }
 }

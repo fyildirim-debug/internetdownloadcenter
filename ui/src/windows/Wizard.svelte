@@ -118,7 +118,7 @@
     <ToolIcon name="app" size={56} />
     <ol>
       {#each STEPS as st, i (st)}
-        <li class:cur={st === step} class:done={i < idx}>{t(`wiz.step.${st}`)}</li>
+        <li class:cur={st === step} class:done={i < idx}><span class="num">{i < idx ? '✓' : `${i + 1}.`}</span>{t(`wiz.step.${st}`)}</li>
       {/each}
     </ol>
   </aside>
@@ -190,7 +190,6 @@
         <fieldset class="mt">
           <label class="check"><input type="checkbox" bind:checked={os.autostart} />{t('opt.sy.autostart')}</label>
           <label class="check"><input type="checkbox" bind:checked={os.urlHandler} />{t('opt.sy.urlHandler')}</label>
-          <label class="check"><input type="checkbox" bind:checked={os.contextMenu} />{t('opt.sy.contextMenu')}</label>
           {#if os.kdeDownloadManager != null}
             <label class="check"><input type="checkbox" checked={os.kdeDownloadManager} onchange={(e) => (os!.kdeDownloadManager = (e.target as HTMLInputElement).checked)} />{t('opt.sy.kde')}</label>
           {/if}
@@ -256,8 +255,13 @@
   }
   ol {
     margin: 0;
-    padding-left: 18px;
+    padding-left: 4px;
     line-height: 2;
+    list-style: none;
+  }
+  .num {
+    display: inline-block;
+    width: 20px;
   }
   li {
     opacity: 0.7;
@@ -268,9 +272,6 @@
   }
   li.done {
     opacity: 0.9;
-  }
-  li.done::marker {
-    content: '✓  ';
   }
   .body {
     flex: 1;

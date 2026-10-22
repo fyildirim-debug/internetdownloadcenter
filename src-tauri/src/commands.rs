@@ -128,10 +128,19 @@ pub fn open_with(st: State<AppState>, id: String) -> R<()> {
     }
     #[cfg(unix)]
     {
-        // GNOME/KDE'de "Birlikte aç" seçicisi için portal ya da dosya yöneticisine düş.
-        let ok = std::process::Command::new("gio").arg("open").arg("--ask").arg(&p).spawn().is_ok();
+        // Masaüstü portalının uygulama seçicisi (GNOME, KDE, XFCE'de xdg-desktop-portal ile).
+        let uri = url::Url::from_file_path(&p).map(|u| u.to_string()).unwrap_or_default();
+        let ok = std::process::Command::new("gdbus")
+            .args([
+                "call", "--session", "--dest", "org.freedesktop.portal.Desktop", "--object-path", "/org/freedesktop/portal/desktop",
+                "--method", "org.freedesktop.portal.OpenURI.OpenURI", "", &uri, "{'ask': <true>}",
+            ])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
         if !ok {
-            tauri_plugin_opener::open_path(p.to_string_lossy().to_string(), None::<&str>).map_err(e)?;
+            // Portal yoksa dosyayı klasöründe göster; kullanıcı sağ tıkla "Birlikte aç"ı seçer.
+            tauri_plugin_opener::reveal_item_in_dir(&p).map_err(e)?;
         }
         Ok(())
     }

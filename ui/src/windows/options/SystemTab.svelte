@@ -42,7 +42,6 @@
   <fieldset class="mt">
     <label class="check"><input type="checkbox" bind:checked={os.autostart} />{t('opt.sy.autostart')}</label>
     <label class="check"><input type="checkbox" bind:checked={os.urlHandler} />{t('opt.sy.urlHandler')}</label>
-    <label class="check"><input type="checkbox" bind:checked={os.contextMenu} />{t('opt.sy.contextMenu')}</label>
     {#if os.kdeDownloadManager != null}
       <label class="check"><input type="checkbox" checked={os.kdeDownloadManager} onchange={(e) => (os!.kdeDownloadManager = (e.target as HTMLInputElement).checked)} />{t('opt.sy.kde')}</label>
     {/if}

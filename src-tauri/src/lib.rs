@@ -228,6 +228,53 @@ fn handle_args(app: &AppHandle, args: &[String], from_second: bool) {
     }
 }
 
+/// Destek ve paketleme için komut satırı araçları:
+/// `--diagnose` ortamı JSON olarak yazar; `--integrate browsers,url,kde,autostart` entegrasyonu kurar.
+/// Uygulama zaten çalışıyorsa tek örnek kuralı gereği bu komutlar çalışan örneğe gider ve etkisiz kalır.
+fn cli_tools(app: &AppHandle, args: &[String]) -> bool {
+    let diagnose = args.iter().any(|a| a == "--diagnose");
+    let integrate = args.iter().position(|a| a == "--integrate").map(|i| args.get(i + 1).cloned().unwrap_or_else(|| "all".into()));
+    if !diagnose && integrate.is_none() {
+        return false;
+    }
+    if let Some(list) = integrate {
+        let all = list == "all";
+        let has = |k: &str| all || list.split(',').any(|x| x.trim() == k);
+        if has("browsers") {
+            if let Err(e) = integration::install(app, None) {
+                eprintln!("tarayıcı entegrasyonu: {e}");
+            }
+        }
+        let mut o = integration::os_status(app);
+        if has("url") {
+            o.url_handler = true;
+        }
+        if has("autostart") {
+            o.autostart = true;
+        }
+        if has("kde") {
+            o.kde_download_manager = Some(true);
+        }
+        if let Err(e) = integration::os_apply(app, &o) {
+            eprintln!("sistem entegrasyonu: {e}");
+        }
+    }
+    let st = flows::state(app);
+    let report = serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "os": format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+        "dataDir": idc_core::paths::config_dir(),
+        "language": sys_lang(),
+        "integration": integration::os_status(app),
+        "browsers": integration::status(app),
+        "tools": st.engine.tools().status(),
+        "hostPath": integration::host_path(app),
+    });
+    println!("{}", serde_json::to_string_pretty(&report).unwrap_or_default());
+    api::cleanup();
+    std::process::exit(0);
+}
+
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::try_from_env("IDC_LOG").unwrap_or_else(|_| "info".into()))
@@ -256,6 +303,9 @@ pub fn run() {
             let handle = app.handle().clone();
             let engine = tauri::async_runtime::block_on(async { Engine::new(idc_core::paths::config_dir()) });
             app.manage(AppState::new(engine.clone()));
+            if cli_tools(&handle, &args) {
+                return Ok(());
+            }
             if let Err(e) = tauri::async_runtime::block_on(api::start(handle.clone())) {
                 tracing::error!("yerel API başlatılamadı: {e}");
             }
