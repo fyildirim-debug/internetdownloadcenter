@@ -22,6 +22,9 @@ pub struct PendingAdd {
     pub suggested_dir: String,
     pub category: String,
     pub duplicate_of: Option<String>,
+    /// "Pencere açıkken indirmeye başla" ayarıyla arka planda başlatılmış indirme.
+    #[serde(skip)]
+    pub download_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

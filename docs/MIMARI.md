@@ -111,6 +111,13 @@ Tüm alan adları JSON'da camelCase'dir.
 | `grab_links` | `url, depth, extensions` | `GrabbedLink[]` |
 | `app_info` | – | `{ version, os, dataDir, firstRun }` |
 | `quit_app` | – | – |
+| `create_pending` / `get_pending` / `confirm_pending` / `cancel_pending` | `req` / `token` | "Dosya bilgisi" penceresinin onay akışı |
+| `get_pending_media` / `confirm_pending_media` | `token`, `choice` | Video kalite penceresi |
+| `get_pending_links` / `add_many` | `token` / `reqs` | Bağlantı seçme penceresi |
+| `open_with` / `browser_open_extensions` | `id` | "Birlikte aç" (portal), tarayıcının eklenti sayfası |
+| `set_global_speed_limit` | `kib?` | Hız sınırlayıcı aç/kapat |
+| `save_queue` / `delete_queue` / `move_in_queue` | – | Kuyruk düzenleme |
+| `export_list` / `import_list` | `path` | Liste aktarımı (JSON ya da satır başına adres) |
 
 ### Olaylar (çekirdek → arayüz)
 
@@ -118,11 +125,25 @@ Tüm alan adları JSON'da camelCase'dir.
 * `idc://changed` → `DownloadView` (durum/ad/boyut değişince)
 * `idc://removed` → `string[]`
 * `idc://settings` → `Settings`
+* `idc://pending`, `idc://pending-media` → onay bekleyen işlemin güncel hali (dosya bilgisi sorgusu bitince)
+* `idc://tools` → `ToolsStatus` (araç kurulum ilerlemesi)
+
+## Komut satırı
+
+| Argüman | Etki |
+|---|---|
+| `<adres>` ya da `idc://add?url=<adres>` | "Dosya bilgisi" penceresiyle indirme ekler (video sitesinde kalite penceresi) |
+| `--background` | Pencere açmadan tepside başlar (başlangıçta çalıştırma bunu kullanır) |
+| `--add-url` | "URL ekle" penceresini açar |
+| `--diagnose` | Masaüstü, oturum, tarayıcılar, köprü ve araç durumunu JSON olarak yazar |
+| `--integrate browsers,url,kde,autostart` | Entegrasyonu kurar (`all` hepsi); paketleme ve destek için |
 
 ## Eklenti protokolü
 
-Eklenti `chrome.runtime.sendNativeMessage("com.furkanyildirim.idc", msg)` ile tek mesaj gönderir.
-Ana alanlar: `type`, `reqId`. Uygulama aynı `reqId` ile döner.
+Eklenti `chrome.runtime.sendNativeMessage("com.furkanyildirim.idc", msg)` ile tek mesaj gönderir
+ve tek cevap alır; köprü her mesajda yeniden başlatılır. Uygulama kapalıysa köprü `hello` dışındaki
+mesajlarda uygulamayı başlatır; `hello` için `{ type: "error", message: "app_unavailable" }` döner
+(eklenti bu durumda önbellekteki ayarlarla yakalamaya devam eder).
 
 | `type` | Gönderilen | Cevap |
 |---|---|---|

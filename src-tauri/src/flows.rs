@@ -57,6 +57,7 @@ pub fn create_pending(app: &AppHandle, req: AddRequest, probe: Option<ProbeResul
         suggested_dir: dir,
         category,
         duplicate_of,
+        download_id: None,
     };
     st.pending.lock().insert(token.clone(), p);
     if need_probe {
@@ -99,9 +100,36 @@ pub fn create_pending(app: &AppHandle, req: AddRequest, probe: Option<ProbeResul
 }
 
 /// Onaylanan bekleyen indirmeyi ekler.
-pub fn confirm_pending(app: &AppHandle, token: &str, req: AddRequest) -> anyhow::Result<String> {
+pub async fn confirm_pending(app: &AppHandle, token: &str, req: AddRequest) -> anyhow::Result<String> {
     let st = state(app);
     let p = st.pending.lock().remove(token);
+    // Arka planda zaten başlamış indirme: kullanıcının seçimlerini uygula.
+    if let Some(id) = p.as_ref().and_then(|p| p.download_id.clone()) {
+        st.engine.pause(std::slice::from_ref(&id));
+        for _ in 0..50 {
+            if !st.engine.list().iter().any(|v| v.id == id && v.status.is_active()) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        let patch = DownloadPatch {
+            file_name: req.file_name.clone(),
+            save_dir: req.save_dir.clone(),
+            category: req.category.clone(),
+            description: req.description.clone(),
+            max_connections: req.max_connections,
+            queue_id: req.queue_id.clone(),
+            checksum: req.checksum.clone(),
+            ..Default::default()
+        };
+        st.engine.update(&id, patch)?;
+        st.engine.set_silent(&id, false);
+        if req.start {
+            st.engine.start(std::slice::from_ref(&id));
+            maybe_progress_window(app, &id);
+        }
+        return Ok(id);
+    }
     let mut req = req;
     if req.size_hint.is_none() {
         req.size_hint = p.as_ref().and_then(|p| p.probe.as_ref()).and_then(|x| x.size);
@@ -221,7 +249,19 @@ pub async fn handle_capture(app: &AppHandle, c: DownloadCapture) -> ExtResponse 
         ..Default::default()
     };
     if s.downloads.show_file_info_dialog {
+        // İstenirse pencere açıkken indirme arka planda başlar (zaman kazanmak ve tek kullanımlık adresler için).
+        let early = if s.downloads.start_immediately_with_dialog {
+            st.engine.add(AddRequest { start: true, silent: true, ..add.clone() }).ok()
+        } else {
+            None
+        };
         let token = create_pending(app, AddRequest { start: false, ..add }, probe);
+        if let Some(id) = early {
+            if let Some(p) = st.pending.lock().get_mut(&token) {
+                p.download_id = Some(id.clone());
+                p.duplicate_of = p.duplicate_of.clone().filter(|d| *d != id);
+            }
+        }
         return ExtResponse::Accepted { id: Some(token) };
     }
     match st.engine.add(add) {

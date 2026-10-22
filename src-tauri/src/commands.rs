@@ -319,15 +319,21 @@ pub fn get_pending(st: State<AppState>, token: String) -> R<PendingAdd> {
 }
 
 #[tauri::command]
-pub fn confirm_pending(app: AppHandle, token: String, req: AddRequest) -> R<String> {
-    flows::confirm_pending(&app, &token, req).map_err(e)
+pub async fn confirm_pending(app: AppHandle, token: String, req: AddRequest) -> R<String> {
+    flows::confirm_pending(&app, &token, req).await.map_err(e)
 }
 
 #[tauri::command]
-pub fn cancel_pending(st: State<AppState>, token: String) {
+pub async fn cancel_pending(st: State<'_, AppState>, token: String) -> R<()> {
+    let p = st.pending.lock().remove(&token);
+    // Arka planda başlamış indirme varsa iptal edip yarım dosyayı sil.
+    if let Some(id) = p.and_then(|p| p.download_id) {
+        st.engine.remove(&[id], true).await;
+    }
     st.pending.lock().remove(&token);
     st.pending_media.lock().remove(&token);
     st.pending_links.lock().remove(&token);
+    Ok(())
 }
 
 #[tauri::command]

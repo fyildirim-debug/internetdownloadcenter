@@ -307,8 +307,9 @@ async fn cookies_across_redirect() {
 async fn pause_and_resume() {
     let (addr, _srv) = server().await;
     let env = env();
-    let size = 8 * 1024 * 1024;
-    let id = add(&env.engine, format!("http://{addr}/file?size={size}&delay=5"), 8);
+    let size = 16 * 1024 * 1024;
+    // Yavaş sunucu: duraklatma anında indirme kesinlikle sürüyor olsun.
+    let id = add(&env.engine, format!("http://{addr}/file?size={size}&delay=30"), 8);
     // Bir süre insin, sonra duraklat.
     tokio::time::sleep(Duration::from_millis(1500)).await;
     env.engine.pause(&[id.clone()]);

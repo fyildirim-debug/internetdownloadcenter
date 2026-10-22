@@ -646,6 +646,10 @@ impl Engine {
         }
     }
 
+    pub fn set_silent(&self, id: &str, silent: bool) {
+        self.inner.update(id, |d| d.silent = silent);
+    }
+
     /// Tarayıcıdan yeni oturum bilgisiyle gelen aynı dosya: adresi ve çerezleri yenile.
     pub fn refresh_request(&self, id: &str, req: RequestInfo) {
         self.inner.update(id, |d| {
