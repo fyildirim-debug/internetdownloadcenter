@@ -1,0 +1,123 @@
+{
+  "extName": {
+    "message": "Internet Download Center"
+  },
+  "extDesc": {
+    "message": "Dosyaları, videoları ve akışları Internet Download Center ile indirir: çok bağlantılı hızlandırma, kaldığı yerden devam ve video kalite seçimi."
+  },
+  "appNotFound": {
+    "message": "IDC bulunamadı"
+  },
+  "appNotFoundHelp": {
+    "message": "Internet Download Center'ı kurup çalıştırın, ardından Seçenekler › Genel'den tarayıcı entegrasyonunu açın."
+  },
+  "appConnected": {
+    "message": "IDC'ye bağlı"
+  },
+  "retry": {
+    "message": "Yeniden dene"
+  },
+  "permHelp": {
+    "message": "İndirmeleri yakalamak ve videoları algılamak için IDC'nin tüm sitelere erişmesi gerekir."
+  },
+  "permGrant": {
+    "message": "İzin ver"
+  },
+  "captureToggle": {
+    "message": "Tarayıcı indirmelerini yakala"
+  },
+  "disableOnSite": {
+    "message": "$ARG$ sitesinde devre dışı",
+    "placeholders": {
+      "arg": {
+        "content": "$1"
+      }
+    }
+  },
+  "mediaOnPage": {
+    "message": "Bu sayfadaki medya"
+  },
+  "noMedia": {
+    "message": "Henüz medya algılanmadı. Algılamak için videoyu oynatın."
+  },
+  "probePage": {
+    "message": "Bu sayfadaki videoları bul"
+  },
+  "downloadPageVideo": {
+    "message": "Bu sayfanın videosunu indir…"
+  },
+  "openIdc": {
+    "message": "Internet Download Center'ı aç"
+  },
+  "askWhereHint": {
+    "message": "İpucu: Kesintisiz yakalama için tarayıcı ayarlarında \"Her dosyanın nereye kaydedileceğini sor\" seçeneğini kapatın."
+  },
+  "menuDownloadLink": {
+    "message": "IDC ile indir"
+  },
+  "menuDownloadSelection": {
+    "message": "Seçili bağlantıları IDC ile indir"
+  },
+  "menuDownloadAll": {
+    "message": "Tüm bağlantıları IDC ile indir"
+  },
+  "menuDownloadVideo": {
+    "message": "Videoyu IDC ile indir"
+  },
+  "menuDownloadImage": {
+    "message": "Resmi IDC ile indir"
+  },
+  "blockedFallback": {
+    "message": "Site indirme yöneticisini engelledi; dosya tarayıcı ile indiriliyor."
+  },
+  "unsupportedUrl": {
+    "message": "Bu adres IDC ile indirilemez."
+  },
+  "noLinks": {
+    "message": "Bağlantı bulunamadı."
+  },
+  "panelButton": {
+    "message": "IDC ile indir"
+  },
+  "panelTitle": {
+    "message": "Bu videoyu Internet Download Center ile indir"
+  },
+  "panelClose": {
+    "message": "Bu video için gizle"
+  },
+  "directFiles": {
+    "message": "Dosyalar"
+  },
+  "loadingQualities": {
+    "message": "Kaliteler yükleniyor…"
+  },
+  "qualities": {
+    "message": "Kaliteler"
+  },
+  "qualitiesFor": {
+    "message": "Kaliteler · $ARG$",
+    "placeholders": {
+      "arg": {
+        "content": "$1"
+      }
+    }
+  },
+  "noFormats": {
+    "message": "İndirilebilir biçim bulunamadı."
+  },
+  "quickDownload": {
+    "message": "Hızlı indir (varsayılan kalite)"
+  },
+  "chooseQuality": {
+    "message": "IDC'de kalite seç…"
+  },
+  "sending": {
+    "message": "IDC'ye gönderiliyor…"
+  },
+  "sentToIdc": {
+    "message": "IDC'ye eklendi"
+  },
+  "genericError": {
+    "message": "Bir hata oluştu"
+  }
+}

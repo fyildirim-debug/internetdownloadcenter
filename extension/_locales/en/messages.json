@@ -1,0 +1,123 @@
+{
+  "extName": {
+    "message": "Internet Download Center"
+  },
+  "extDesc": {
+    "message": "Downloads files, videos and streams with Internet Download Center: multi-connection acceleration, resume and video quality selection."
+  },
+  "appNotFound": {
+    "message": "IDC not found"
+  },
+  "appNotFoundHelp": {
+    "message": "Install and run Internet Download Center, then enable browser integration from Options › General."
+  },
+  "appConnected": {
+    "message": "Connected to IDC"
+  },
+  "retry": {
+    "message": "Try again"
+  },
+  "permHelp": {
+    "message": "IDC needs access to all sites to capture downloads and detect videos."
+  },
+  "permGrant": {
+    "message": "Grant access"
+  },
+  "captureToggle": {
+    "message": "Capture browser downloads"
+  },
+  "disableOnSite": {
+    "message": "Disable on $ARG$",
+    "placeholders": {
+      "arg": {
+        "content": "$1"
+      }
+    }
+  },
+  "mediaOnPage": {
+    "message": "Media on this page"
+  },
+  "noMedia": {
+    "message": "No media detected yet. Play the video to detect it."
+  },
+  "probePage": {
+    "message": "Find videos on this page"
+  },
+  "downloadPageVideo": {
+    "message": "Download this page's video…"
+  },
+  "openIdc": {
+    "message": "Open Internet Download Center"
+  },
+  "askWhereHint": {
+    "message": "Tip: turn off \"Ask where to save each file\" in browser settings for seamless capture."
+  },
+  "menuDownloadLink": {
+    "message": "Download with IDC"
+  },
+  "menuDownloadSelection": {
+    "message": "Download selected links with IDC"
+  },
+  "menuDownloadAll": {
+    "message": "Download all links with IDC"
+  },
+  "menuDownloadVideo": {
+    "message": "Download video with IDC"
+  },
+  "menuDownloadImage": {
+    "message": "Download image with IDC"
+  },
+  "blockedFallback": {
+    "message": "The site blocked the download manager; the file is being downloaded by the browser."
+  },
+  "unsupportedUrl": {
+    "message": "This address cannot be downloaded with IDC."
+  },
+  "noLinks": {
+    "message": "No links found."
+  },
+  "panelButton": {
+    "message": "Download with IDC"
+  },
+  "panelTitle": {
+    "message": "Download this video with Internet Download Center"
+  },
+  "panelClose": {
+    "message": "Hide for this video"
+  },
+  "directFiles": {
+    "message": "Files"
+  },
+  "loadingQualities": {
+    "message": "Loading qualities…"
+  },
+  "qualities": {
+    "message": "Qualities"
+  },
+  "qualitiesFor": {
+    "message": "Qualities · $ARG$",
+    "placeholders": {
+      "arg": {
+        "content": "$1"
+      }
+    }
+  },
+  "noFormats": {
+    "message": "No downloadable format found."
+  },
+  "quickDownload": {
+    "message": "Quick download (default quality)"
+  },
+  "chooseQuality": {
+    "message": "Choose quality in IDC…"
+  },
+  "sending": {
+    "message": "Sending to IDC…"
+  },
+  "sentToIdc": {
+    "message": "Added to IDC"
+  },
+  "genericError": {
+    "message": "Something went wrong"
+  }
+}

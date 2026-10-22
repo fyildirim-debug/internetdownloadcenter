@@ -168,6 +168,10 @@ pub struct Download {
     pub show_complete_dialog: Option<bool>,
     /// İndirme sırasında ilerleme penceresi açılmasın.
     pub silent: bool,
+    /// Dosya adı sunucu cevabına göre belirlenebilir (kullanıcı ad vermedi).
+    pub auto_name: bool,
+    /// Tarayıcıdan yakalandı (engel durumunda tarayıcıya geri verilebilir).
+    pub from_browser: bool,
 }
 
 impl Default for Download {
@@ -201,6 +205,8 @@ impl Default for Download {
             checksum_ok: None,
             show_complete_dialog: None,
             silent: false,
+            auto_name: false,
+            from_browser: false,
         }
     }
 }

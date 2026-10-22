@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Internet Download Center</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon-32.png" width="22" height="22" alt="">
+    <div class="title">
+      <strong>Internet Download Center</strong>
+      <span id="ver"></span>
+    </div>
+  </header>
+
+  <section id="status" class="status">
+    <span class="dot"></span><span id="statusText"></span>
+  </section>
+
+  <section id="missing" class="box warn" hidden>
+    <strong data-i18n="appNotFound"></strong>
+    <p data-i18n="appNotFoundHelp"></p>
+    <button id="retry" class="btn" data-i18n="retry"></button>
+  </section>
+
+  <section id="perm" class="box warn" hidden>
+    <p data-i18n="permHelp"></p>
+    <button id="grant" class="btn primary" data-i18n="permGrant"></button>
+  </section>
+
+  <section class="rows">
+    <label class="row">
+      <span data-i18n="captureToggle"></span>
+      <input type="checkbox" id="enabled" class="switch">
+    </label>
+    <label class="row" id="siteRow">
+      <span id="siteLabel"></span>
+      <input type="checkbox" id="siteDisabled" class="switch">
+    </label>
+  </section>
+
+  <section class="media">
+    <div class="sectionTitle"><span data-i18n="mediaOnPage"></span><span id="mediaCount" class="count"></span></div>
+    <ul id="mediaList"></ul>
+    <p id="mediaEmpty" class="empty" data-i18n="noMedia"></p>
+    <button id="probePage" class="btn wide" hidden data-i18n="probePage"></button>
+  </section>
+
+  <footer>
+    <button id="open" class="btn primary" data-i18n="openIdc"></button>
+    <span class="hint" id="hint" data-i18n="askWhereHint"></span>
+  </footer>
+  <script src="../compat.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
