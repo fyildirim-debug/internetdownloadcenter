@@ -1,0 +1,45 @@
+[package]
+name = "idc-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Internet Download Center indirme motoru"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "cookies", "stream", "socks", "http2", "charset"] }
+cookie_store = "0.21"
+futures-util = "0.3"
+bytes = "1"
+url = "2"
+percent-encoding = "2"
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "6"
+sha2 = "0.10"
+md-5 = "0.10"
+sha1 = "0.10"
+hex = "0.4"
+regex = "1"
+once_cell = "1"
+parking_lot = "0.12"
+mime_guess = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+xz2 = { version = "0.1", features = ["static"] }
+tar = "0.4"
+scraper = "0.20"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_Threading"] }
+
+[dev-dependencies]
+tempfile = "3"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
