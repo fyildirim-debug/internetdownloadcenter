@@ -7,6 +7,9 @@ const EXT_VERSION = api.runtime.getManifest().version;
 const HELLO_INTERVAL_MIN = 5;
 const APP_FRESH_MS = 2 * 60 * 1000; // Firefox engelleme yolu için uygulamanın taze sayılma süresi
 const NATIVE_TIMEOUT_MS = 15000;
+// İndirme devrinde köprü uygulamayı başlatabilir (~12 sn) ve uygulama sunucuyu yoklar (~10 sn).
+// Bu süre aşılırsa tarayıcı indirmesi sürdürülür; uygulama da kabul etmiş olursa çift indirme olur.
+const DOWNLOAD_TIMEOUT_MS = 40000;
 const PROBE_TIMEOUT_MS = 120000;
 const KEY_WINDOW_MS = 3000;
 const LOG_TTL_MS = 2 * 60 * 1000;
@@ -567,7 +570,7 @@ async function handleCreated(item) {
       forced: keys.force,
       browserDownloadId: item.id,
     });
-    res = await send({ type: 'download', ...capture }, NATIVE_TIMEOUT_MS);
+    res = await send({ type: 'download', ...capture }, DOWNLOAD_TIMEOUT_MS);
   } catch (_) {
     res = null;
   }
@@ -672,7 +675,7 @@ async function handOffAfterCancel(d, fileName, mime, size, forced) {
       tabId: d.tabId,
       forced,
     });
-    res = await send({ type: 'download', ...capture }, NATIVE_TIMEOUT_MS);
+    res = await send({ type: 'download', ...capture }, DOWNLOAD_TIMEOUT_MS);
   } catch (_) {
     res = null;
   }
@@ -733,6 +736,13 @@ api.runtime.onInstalled.addListener(() => {
 });
 
 api.runtime.onStartup.addListener(() => {
+  // storage.session olmayan eski tarayıcılarda oturum kümeleri storage.local'a düşer;
+  // indirme kimlikleri her oturumda baştan sayıldığı için tarayıcı açılışında temizlenir.
+  if (!(api.storage && api.storage.session)) {
+    session.handled = [];
+    session.pending = {};
+    persistSession();
+  }
   createMenus();
   hello();
   api.alarms.create('idc-hello', { periodInMinutes: HELLO_INTERVAL_MIN });

@@ -7,3 +7,5 @@ dist/
 src-tauri/gen/schemas/
 src-tauri/binaries/
 extension/build/
+src-tauri/tools/yt-dlp
+src-tauri/tools/yt-dlp.exe

@@ -5,6 +5,14 @@ use std::sync::Arc;
 
 use parking_lot::Mutex;
 
+/// Kurulum paketiyle gelen araçların klasörü (uygulama açılışta bildirir).
+static BUNDLED_DIR: once_cell::sync::OnceCell<PathBuf> = once_cell::sync::OnceCell::new();
+
+/// Paketle gelen araçların yerini kaydeder (ör. Tauri kaynak klasöründeki `tools`).
+pub fn set_bundled_dir(dir: PathBuf) {
+    let _ = BUNDLED_DIR.set(dir);
+}
+
 use crate::system::{ToolInfo, ToolsStatus};
 
 #[derive(Clone)]
@@ -75,6 +83,13 @@ impl Tools {
         if m.is_file() {
             return Some(m);
         }
+        // Kurulum paketinin kaynak klasöründeki araçlar.
+        if let Some(d) = BUNDLED_DIR.get() {
+            let cand = d.join(exe(name));
+            if cand.is_file() {
+                return Some(cand);
+            }
+        }
         // Paketle gelen araçlar (çalıştırılabilir dosyanın yanında).
         if let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.to_path_buf())) {
             for cand in [dir.join(exe(name)), dir.join("tools").join(exe(name))] {
@@ -104,7 +119,13 @@ impl Tools {
                     let v = v.trim_start_matches("ffmpeg version ").trim_start_matches("deno ");
                     v.split(' ').next().unwrap_or("").to_string()
                 }),
-                source: if p.starts_with(self.dir()) { "managed".into() } else { "system".into() },
+                source: if p.starts_with(self.dir()) {
+                    "managed".into()
+                } else if BUNDLED_DIR.get().map(|d| p.starts_with(d)).unwrap_or(false) {
+                    "bundled".into()
+                } else {
+                    "system".into()
+                },
                 path: Some(p.to_string_lossy().into()),
             },
             None => ToolInfo { installed: false, version: None, path: None, source: "none".into() },
@@ -156,7 +177,8 @@ impl Tools {
 
         // yt-dlp: resmi tek dosya sürümü (ejs ve curl_cffi dahil).
         let yt = self.managed("yt-dlp");
-        if !yt.is_file() || update {
+        // Paketle gelen sürüm varsa yalnız güncellemede indir; güncel sürüm veri klasörüne yazılır ve önceliklidir.
+        if update || self.ytdlp().is_none() {
             let asset = ytdlp_asset();
             let url = format!("https://github.com/yt-dlp/yt-dlp/releases/latest/download/{asset}");
             self.fetch(&client, "yt-dlp", &url, &yt).await?;

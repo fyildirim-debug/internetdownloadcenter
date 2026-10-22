@@ -62,7 +62,10 @@ pub fn write_json<T: Serialize + ?Sized>(path: &Path, value: &T) -> anyhow::Resu
     if let Some(p) = path.parent() {
         std::fs::create_dir_all(p)?;
     }
-    let tmp = path.with_extension("json.tmp");
+    // Eşzamanlı iki yazıcı aynı geçici dosyayı kullanmasın.
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = path.with_extension(format!("json.{}.{}.tmp", std::process::id(), n));
     let data = serde_json::to_vec_pretty(value)?;
     {
         use std::io::Write;

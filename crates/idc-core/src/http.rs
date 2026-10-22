@@ -27,6 +27,70 @@ const SKIP_HEADERS: &[&str] = &[
     "priority", "purpose", "sec-purpose", "x-client-data",
 ];
 
+/// Her isteğe (yönlendirmeler dahil) eklenebilecek, tarayıcının standart başlıkları.
+fn is_standard_header(lk: &str) -> bool {
+    matches!(lk, "accept" | "accept-language" | "dnt" | "upgrade-insecure-requests" | "cache-control" | "pragma")
+        || lk.starts_with("sec-ch-")
+        || lk.starts_with("sec-fetch-")
+}
+
+/// Sitenin kendisine özel başlıklar (`Authorization`, `X-Api-Key` …): yalnız aynı siteye gönderilir.
+pub fn custom_headers(req: &RequestInfo) -> Vec<(HeaderName, HeaderValue)> {
+    req.headers
+        .iter()
+        .filter_map(|(k, v)| {
+            let lk = k.to_ascii_lowercase();
+            if SKIP_HEADERS.contains(&lk.as_str()) || lk.starts_with(':') || lk == "user-agent" || lk == "referer" || is_standard_header(&lk) {
+                return None;
+            }
+            Some((HeaderName::from_bytes(lk.as_bytes()).ok()?, HeaderValue::from_str(v).ok()?))
+        })
+        .collect()
+}
+
+fn same_origin(a: &str, b: &str) -> bool {
+    match (url::Url::parse(a), url::Url::parse(b)) {
+        (Ok(x), Ok(y)) => x.host_str() == y.host_str() && x.port_or_known_default() == y.port_or_known_default(),
+        _ => false,
+    }
+}
+
+/// Aralıklı isteği gönderir ve yönlendirmeleri elle izler: çerezler her adımda alan adına göre
+/// kavanozdan gelir, siteye özel başlıklar ve kimlik bilgileri başka siteye taşınmaz.
+pub async fn send_ranged(client: &Client, url: &str, req: &RequestInfo, settings: &Settings, start: u64, end_excl: Option<u64>) -> reqwest::Result<Response> {
+    let mut current = url.to_string();
+    let mut method_get = false;
+    for _ in 0..15 {
+        let trusted = same_origin(&current, &req.url);
+        let mut r = req.clone();
+        if method_get {
+            r.method = None;
+            r.post_data = None;
+        }
+        let mut rb = ranged_get(client, &current, &r, settings, start, end_excl, trusted);
+        if trusted {
+            for (k, v) in custom_headers(req) {
+                rb = rb.header(k, v);
+            }
+        }
+        let resp = rb.send().await?;
+        if resp.status().is_redirection() {
+            if let Some(loc) = resp.headers().get(reqwest::header::LOCATION).and_then(|v| v.to_str().ok()) {
+                if let Ok(next) = resp.url().join(loc) {
+                    if matches!(resp.status().as_u16(), 301 | 302 | 303) {
+                        method_get = true;
+                    }
+                    current = next.to_string();
+                    continue;
+                }
+            }
+        }
+        return Ok(resp);
+    }
+    // Çok fazla yönlendirme: son adresi bir kez daha dene ve cevabı olduğu gibi döndür.
+    ranged_get(client, &current, req, settings, start, end_excl, false).send().await
+}
+
 /// Ham `Cookie` başlığını ad/değer çiftlerine ayırır.
 pub fn parse_cookie_header(raw: &str) -> Vec<(String, String)> {
     raw.split(';')
@@ -82,7 +146,7 @@ pub fn build_client(req: &RequestInfo, settings: &Settings) -> anyhow::Result<Cl
     let mut headers = HeaderMap::new();
     for (k, v) in &req.headers {
         let lk = k.to_ascii_lowercase();
-        if SKIP_HEADERS.contains(&lk.as_str()) || lk.starts_with(':') || lk == "user-agent" || lk == "referer" {
+        if !is_standard_header(&lk) {
             continue;
         }
         if let (Ok(n), Ok(val)) = (HeaderName::from_bytes(lk.as_bytes()), HeaderValue::from_str(v)) {
@@ -114,7 +178,8 @@ pub fn build_client(req: &RequestInfo, settings: &Settings) -> anyhow::Result<Cl
         .user_agent(ua)
         .default_headers(headers)
         .cookie_provider(build_jar(req))
-        .redirect(reqwest::redirect::Policy::limited(15))
+        // Yönlendirmeler `send_ranged` içinde elle izlenir.
+        .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(20))
         .read_timeout(timeout)
         .pool_max_idle_per_host(crate::MAX_CONNECTIONS as usize)
@@ -174,7 +239,7 @@ pub fn split_userinfo(url: &str) -> (String, Option<(String, String)>) {
 }
 
 /// Aralıklı GET isteği hazırlar.
-pub fn ranged_get(client: &Client, url: &str, req: &RequestInfo, settings: &Settings, start: u64, end_excl: Option<u64>) -> reqwest::RequestBuilder {
+pub fn ranged_get(client: &Client, url: &str, req: &RequestInfo, settings: &Settings, start: u64, end_excl: Option<u64>, trusted: bool) -> reqwest::RequestBuilder {
     let (clean, creds) = split_userinfo(url);
     let method = req.method.as_deref().unwrap_or("GET").to_ascii_uppercase();
     let mut rb = if method == "POST" {
@@ -194,7 +259,7 @@ pub fn ranged_get(client: &Client, url: &str, req: &RequestInfo, settings: &Sett
         _ => format!("bytes={}-", start),
     };
     rb = rb.header(reqwest::header::RANGE, range);
-    if let Some((u, p)) = creds {
+    if let (Some((u, p)), true) = (creds, trusted) {
         rb = rb.basic_auth(u, Some(p));
     } else if let Some((u, p)) = site_login(settings, &clean) {
         rb = rb.basic_auth(u, Some(p));
@@ -286,7 +351,7 @@ pub fn head_info(r: &Response) -> HeadInfo {
 /// Arayüzdeki "URL ekle" için dosya bilgisini sorar (gövde okunmaz).
 pub async fn probe(req: &RequestInfo, settings: &Settings) -> anyhow::Result<ProbeResult> {
     let client = build_client(req, settings)?;
-    let resp = ranged_get(&client, &req.url, req, settings, 0, None).send().await?;
+    let resp = send_ranged(&client, &req.url, req, settings, 0, None).await?;
     let info = head_info(&resp);
     drop(resp);
     let name = crate::filename::resolve(info.content_disposition.as_deref(), &info.final_url, &req.url, info.mime.as_deref());

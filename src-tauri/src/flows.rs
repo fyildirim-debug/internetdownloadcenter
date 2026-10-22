@@ -106,7 +106,7 @@ pub async fn confirm_pending(app: &AppHandle, token: &str, req: AddRequest) -> a
     // Arka planda zaten başlamış indirme: kullanıcının seçimlerini uygula.
     if let Some(id) = p.as_ref().and_then(|p| p.download_id.clone()) {
         st.engine.pause(std::slice::from_ref(&id));
-        for _ in 0..50 {
+        for _ in 0..300 {
             if !st.engine.list().iter().any(|v| v.id == id && v.status.is_active()) {
                 break;
             }
@@ -122,7 +122,13 @@ pub async fn confirm_pending(app: &AppHandle, token: &str, req: AddRequest) -> a
             checksum: req.checksum.clone(),
             ..Default::default()
         };
-        st.engine.update(&id, patch)?;
+        if let Err(e) = st.engine.update(&id, patch) {
+            // Pencere yeniden denenebilsin diye bekleyen kaydı geri koy.
+            if let Some(p) = p {
+                st.pending.lock().insert(token.to_string(), p);
+            }
+            return Err(e);
+        }
         st.engine.set_silent(&id, false);
         if req.start {
             st.engine.start(std::slice::from_ref(&id));
@@ -197,7 +203,7 @@ pub async fn handle_capture(app: &AppHandle, c: DownloadCapture) -> ExtResponse 
 
     // Adres yenileme: aynı ad ve boyuttaki yarım indirme yeni adresle sürer.
     if let (Some(name), Some(size)) = (c.file_name.as_deref(), c.file_size) {
-        if let Some(id) = st.engine.find_unfinished(name, Some(size)) {
+        if let Some(id) = st.engine.find_unfinished(name, Some(size), &c.url) {
             st.engine.refresh_request(&id, req.clone());
             st.engine.start(std::slice::from_ref(&id));
             crate::notify(app, "refreshed", name);
@@ -207,7 +213,8 @@ pub async fn handle_capture(app: &AppHandle, c: DownloadCapture) -> ExtResponse 
     }
 
     // Sunucu bizi kabul ediyor mu? Etmiyorsa indirme tarayıcıda kalsın.
-    let probe = tokio::time::timeout(Duration::from_secs(12), st.engine.probe(&req)).await;
+    // Eklentinin bekleme süresi (40 sn) köprünün uygulamayı başlatma süresi + bu yoklama süresinden uzundur.
+    let probe = tokio::time::timeout(Duration::from_secs(10), st.engine.probe(&req)).await;
     let (probe, blocked) = match probe {
         Ok(Ok(p)) => {
             let html_trap = p.is_html && !is_html_mime(c.mime.as_deref());

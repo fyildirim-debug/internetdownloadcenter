@@ -437,6 +437,7 @@ const tr = {
   'opt.vd.version': 'Sürüm',
   'opt.vd.source': 'Kaynak',
   'opt.vd.src.managed': 'IDC',
+  'opt.vd.src.bundled': 'Paketle gelen',
   'opt.vd.src.system': 'Sistem',
   'opt.vd.src.none': 'Yok',
   'opt.vd.installTools': 'Kur / Güncelle',

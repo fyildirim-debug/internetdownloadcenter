@@ -68,6 +68,24 @@ async fn handle(srv: Arc<Srv>, req: Request<hyper::body::Incoming>) -> Result<Re
     let body = data(size);
     let path = req.uri().path().to_string();
 
+    if path == "/leak" {
+        // Aynı sitede gizli başlık gerekli; sonra başka bir "siteye" (localhost) yönlendir.
+        if req.headers().get("x-secret").is_none() {
+            let mut r = Response::new(full("başlık yok"));
+            *r.status_mut() = StatusCode::FORBIDDEN;
+            return Ok(r);
+        }
+        let port = req.headers().get("host").and_then(|h| h.to_str().ok()).and_then(|h| h.rsplit(':').next()).unwrap_or("0").to_string();
+        let mut r = Response::new(full(""));
+        *r.status_mut() = StatusCode::FOUND;
+        r.headers_mut().insert("location", format!("http://localhost:{port}/file?size={size}&noleak=1").parse().unwrap());
+        return Ok(r);
+    }
+    if q(&req, "noleak").is_some() && req.headers().get("x-secret").is_some() {
+        let mut r = Response::new(full("sızdı"));
+        *r.status_mut() = StatusCode::BAD_REQUEST;
+        return Ok(r);
+    }
     if path == "/redirect" {
         let mut r = Response::new(full(""));
         *r.status_mut() = StatusCode::FOUND;
@@ -346,4 +364,19 @@ async fn duplicate_names_are_unique() {
     check(&da, size);
     check(&db, size);
     assert_ne!(da.file_name, db.file_name);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn custom_headers_stay_on_origin() {
+    let (addr, _srv) = server().await;
+    let env = env();
+    let size = 1024 * 1024;
+    let req = RequestInfo {
+        url: format!("http://{addr}/leak?size={size}"),
+        headers: vec![("X-Secret".into(), "gizli".into())],
+        ..Default::default()
+    };
+    let id = env.engine.add(AddRequest { request: req, start: true, ..Default::default() }).unwrap();
+    let d = wait_done(&env.engine, &id, 60).await;
+    check(&d, size);
 }

@@ -5,7 +5,7 @@ Chromium 1194 (Playwright), Rust 1.97, Node 22.
 
 ## Otomatik testler
 
-`cargo test --workspace` komutu 24 test çalıştırır.
+`cargo test --workspace` komutu 25 test çalıştırır.
 
 ### Motorun uçtan uca testleri (`crates/idc-core/tests/engine.rs`)
 
@@ -23,6 +23,7 @@ karşılaştırır.
 | `cookies_across_redirect` | Tarayıcı çerezi + yönlendirmede gelen `Set-Cookie`, ikisi de gerekli | Geçti |
 | `pause_and_resume` | Duraklat, motoru yeniden kur (uygulama yeniden açılmış gibi), kaldığı yerden sürdür | Geçti |
 | `duplicate_names_are_unique` | Aynı adlı iki indirme `ad (2).bin` olur | Geçti |
+| `custom_headers_stay_on_origin` | Siteye özel başlık (`X-Secret`) aynı sitede gönderilir, başka siteye yönlendirmede gönderilmez | Geçti |
 
 ### Birim testleri
 
@@ -38,6 +39,29 @@ karşılaştırır.
 `npm --prefix ui run check` (svelte-check) 142 dosyada 0 hata ve 0 uyarı verdi.
 
 `web-ext lint` (Firefox eklentisi) 0 hata ve 0 uyarı verdi.
+
+## Bağımsız kod incelemesi (Fable)
+
+Bölümleme motoru, eklentinin yakalama akışı ve yerel API ayrı bir modele inceletildi. İnceleme 11 olası
+hata buldu; hepsi düzeltildi:
+
+- Adres yenileme farklı siteden gelen aynı adlı ve aynı boyutlu dosyaya yapışabiliyordu. Artık site
+  de eşleşmeli.
+- Uygulama kapalıyken ve sunucu yavaşken eklentinin zaman aşımı çift indirmeye yol açabiliyordu.
+  Bekleme süreleri yeniden ayarlandı.
+- Aynı indirme için iki görev açılabilecek dar bir yarış vardı. Denetim ve ekleme artık tek kilit
+  altında yapılıyor.
+- Klasör değiştirirken dosya, liste kilidi tutulurken taşınıyordu. Taşıma kilit dışına alındı.
+- Aralık desteklemeyen sunucuda yeniden bağlanma döngüsü vardı. Döngüye sayaç ve üst sınır eklendi.
+- Hız sınırlayıcı beklerken iptal gecikiyordu; silme işlemi de görev bitmeden dosyayı siliyordu.
+- Siteye özel başlıklar başka sitelere yönlendirmede de gidiyordu. Yönlendirmeler artık elle
+  izleniyor.
+- Ayar dosyasına eşzamanlı yazımda geçici dosya çakışabiliyordu.
+- Diğer üç konu daha düzeltildi:
+  - Uyarlanır bağlantı kapalıyken ek bağlantılardan gelen 403'ler indirmenin tamamını düşürebiliyordu.
+  - Erken başlatılan indirmede onay hatası alınırsa bekleyen kayıt kayboluyordu.
+  - `storage.session` olmayan eski Firefox sürümlerinde önceki oturumdan kalan kimlikler yeni
+    indirmelerle karışabiliyordu.
 
 ## Gerçek uygulama ile uçtan uca test
 

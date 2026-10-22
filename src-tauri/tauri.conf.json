@@ -37,7 +37,8 @@
     "resources": {
       "../extension/build/chromium/": "extension/chromium/",
       "../extension/build/idc-firefox.xpi": "extension/idc-firefox.xpi",
-      "../extension/build/idc-chromium.zip": "extension/idc-chromium.zip"
+      "../extension/build/idc-chromium.zip": "extension/idc-chromium.zip",
+      "tools/": "tools/"
     },
     "linux": {
       "deb": {

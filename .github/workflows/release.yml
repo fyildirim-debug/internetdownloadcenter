@@ -30,6 +30,8 @@ jobs:
         working-directory: ui
       - name: Köprü (sidecar)
         run: scripts/sidecar.sh release
+      - name: yt-dlp'yi pakete göm
+        run: scripts/fetch-tools.sh linux
       - name: Derle (deb, rpm, AppImage)
         run: npx -y @tauri-apps/cli@2 build --bundles deb,rpm,appimage
       - name: Firefox eklentisini imzala (isteğe bağlı)
@@ -67,6 +69,9 @@ jobs:
       - name: Köprü (sidecar)
         shell: bash
         run: scripts/sidecar.sh release
+      - name: yt-dlp'yi pakete göm
+        shell: bash
+        run: scripts/fetch-tools.sh windows
       - name: Derle (NSIS)
         run: npx -y @tauri-apps/cli@2 build --bundles nsis
       - name: Taşınabilir zip
@@ -80,6 +85,8 @@ jobs:
           Copy-Item -Recurse extension/build/chromium "$dir/extension/chromium"
           Copy-Item extension/build/idc-firefox.xpi "$dir/extension/"
           Copy-Item extension/build/idc-chromium.zip "$dir/extension/"
+          New-Item -ItemType Directory -Force -Path "$dir/tools" | Out-Null
+          Copy-Item src-tauri/tools/yt-dlp.exe "$dir/tools/"
           Set-Content -Path "$dir/portable.txt" -Value "Bu dosya varken ayarlar ve liste 'data' klasorunde tutulur."
           New-Item -ItemType Directory -Force -Path out | Out-Null
           Compress-Archive -Path "portable/*" -DestinationPath "out/InternetDownloadCenter_${ver}_x64_portable.zip"

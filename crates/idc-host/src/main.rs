@@ -152,7 +152,7 @@ fn launch_app() -> bool {
 fn timeout_for(msg: &serde_json::Value) -> Duration {
     match msg.get("type").and_then(|t| t.as_str()) {
         Some("media_probe") => Duration::from_secs(150),
-        Some("download") => Duration::from_secs(30),
+        Some("download") => Duration::from_secs(25),
         _ => Duration::from_secs(20),
     }
 }

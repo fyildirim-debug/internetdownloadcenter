@@ -172,8 +172,8 @@ async fn coordinate(ctx: Arc<Ctx>) -> Outcome {
             let want = {
                 let st = ctx.state.lock();
                 let max = st.max_conns.min(ctx.active.max_conns.load(Ordering::Relaxed)).max(1) as usize;
-                let can_parallel = st.known && st.resumable;
-                (running == 0 || (can_parallel && running < max)) && has_work(&st)
+                let can_parallel = st.known && st.resumable && !st.restart_single;
+                !(st.restart_single && running > 0) && (running == 0 || (can_parallel && running < max)) && has_work(&st)
             };
             if want {
                 let c = ctx.clone();
@@ -200,13 +200,22 @@ async fn coordinate(ctx: Arc<Ctx>) -> Outcome {
                     Exit::RangeIgnored => {
                         let mut st = ctx.state.lock();
                         st.restart_single = true;
+                        st.failures += 1;
+                        if st.failures > retry_count {
+                            st.fatal = Some(err_text("http_status", "Range"));
+                            drop(st);
+                            cancel.cancel();
+                        }
                     }
                     Exit::Retry { msg, rejected, wait } => {
                         let mut st = ctx.state.lock();
-                        if rejected && running > 0 && ctx.settings.connection.adaptive {
-                            // Sunucu bu kadar bağlantıya izin vermiyor: sayıyı düşür.
-                            st.max_conns = (running as u8).max(1);
-                            tracing::info!("{}: bağlantı sayısı {}'e düşürüldü ({msg})", ctx.id, st.max_conns);
+                        if rejected && running > 0 {
+                            if ctx.settings.connection.adaptive {
+                                // Sunucu bu kadar bağlantıya izin vermiyor: sayıyı düşür.
+                                st.max_conns = (running as u8).max(1);
+                                tracing::info!("{}: bağlantı sayısı {}'e düşürüldü ({msg})", ctx.id, st.max_conns);
+                            }
+                            // Diğer bağlantılar çalıştığı sürece reddedilen ek bağlantı indirmeyi düşürmez.
                             next_spawn = Instant::now() + Duration::from_secs(wait.unwrap_or(10).min(120));
                         } else {
                             st.failures += 1;
@@ -402,10 +411,9 @@ fn io_err_text(e: &std::io::Error) -> String {
 async fn fetch_slot(ctx: &Arc<Ctx>, wid: usize, start: u64, end: Option<u64>, first: bool, file: &mut Option<Arc<File>>) -> Result<(), Exit> {
     let cancel = ctx.active.cancel.clone();
     let url = ctx.url.lock().clone();
-    let rb = http::ranged_get(&ctx.client, &url, &ctx.req, &ctx.settings, start, end);
     let resp = tokio::select! {
         _ = cancel.cancelled() => return Err(Exit::Cancelled),
-        r = rb.send() => r,
+        r = http::send_ranged(&ctx.client, &url, &ctx.req, &ctx.settings, start, end) => r,
     };
     let resp = match resp {
         Ok(r) => r,
@@ -515,8 +523,15 @@ async fn fetch_slot(ctx: &Arc<Ctx>, wid: usize, start: u64, end: Option<u64>, fi
             }
             Some(Ok(c)) => c,
         };
-        ctx.active.limiter.acquire(chunk.len() as u64).await;
-        ctx.inner.global.acquire(chunk.len() as u64).await;
+        let n = chunk.len() as u64;
+        let limited = async {
+            ctx.active.limiter.acquire(n).await;
+            ctx.inner.global.acquire(n).await;
+        };
+        tokio::select! {
+            _ = cancel.cancelled() => break Err(Exit::Cancelled),
+            _ = limited => {}
+        }
 
         // Parçanın (bölünmüş olabilecek) sonuna göre kes.
         let (take, reached_end) = {

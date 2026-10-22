@@ -196,9 +196,10 @@ fn maybe_update_tools(engine: Engine) {
         let s = engine.settings();
         let tools = engine.tools();
         let Some(yt) = tools.ytdlp() else { return };
-        if !s.media.auto_update_tools || !yt.starts_with(tools.dir()) {
+        if !s.media.auto_update_tools || tools.status().ytdlp.source == "system" {
             return;
         }
+        let _ = yt;
         let stamp = tools.dir().join(".last-update");
         let old = std::fs::metadata(&stamp).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).map(|e| e > Duration::from_secs(7 * 86400)).unwrap_or(true);
         if old && tools.ensure(true).await.is_ok() {
@@ -301,6 +302,9 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--background"])))
         .setup(move |app| {
             let handle = app.handle().clone();
+            if let Ok(res) = app.path().resource_dir() {
+                idc_core::tools::set_bundled_dir(res.join("tools"));
+            }
             let engine = tauri::async_runtime::block_on(async { Engine::new(idc_core::paths::config_dir()) });
             app.manage(AppState::new(engine.clone()));
             if cli_tools(&handle, &args) {

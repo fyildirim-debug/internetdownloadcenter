@@ -373,17 +373,24 @@ impl Engine {
     }
 
     /// Aynı ad ve boyuttaki yarım indirme (adres yenileme için).
-    pub fn find_unfinished(&self, file_name: &str, size: Option<u64>) -> Option<DownloadId> {
+    /// Aynı ad, boyut ve siteden gelen yarım indirme (adres yenileme için).
+    /// Farklı sitelerdeki aynı adlı dosyalar karışmasın diye site (ana alan adı) de eşleşmeli.
+    pub fn find_unfinished(&self, file_name: &str, size: Option<u64>, url: &str) -> Option<DownloadId> {
+        let site = base_domain(url);
         let list = self.inner.list.lock();
         list.iter()
             .find(|d| {
                 d.status != Status::Completed
                     && !d.status.is_active()
+                    && !d.is_media()
+                    && d.downloaded > 0
                     && d.file_name == file_name
                     && match (d.size, size) {
                         (Some(a), Some(b)) => a == b,
                         _ => false,
                     }
+                    && site.is_some()
+                    && (base_domain(&d.request.url) == site || d.final_url.as_deref().map(base_domain) == Some(site.clone()))
             })
             .map(|d| d.id.clone())
     }
@@ -413,11 +420,16 @@ impl Engine {
 
     fn launch(&self, id: &str) {
         let Some(d) = self.get(id) else { return };
-        if self.inner.active.lock().contains_key(id) {
-            return;
-        }
-        let act = Arc::new(Active::new(d.speed_limit, d.max_connections));
-        self.inner.active.lock().insert(id.to_string(), act.clone());
+        // Denetim ve ekleme tek kilit altında: aynı indirme için iki görev açılamaz.
+        let act = {
+            let mut active = self.inner.active.lock();
+            if active.contains_key(id) {
+                return;
+            }
+            let act = Arc::new(Active::new(d.speed_limit, d.max_connections));
+            active.insert(id.to_string(), act.clone());
+            act
+        };
         self.inner.update(id, |d| {
             d.status = Status::Connecting;
             d.error = None;
@@ -495,7 +507,7 @@ impl Engine {
             if let Some(a) = act {
                 a.cancel.cancel();
                 // Görevin dosyaları bırakmasını bekle.
-                for _ in 0..50 {
+                for _ in 0..300 {
                     if !self.inner.active.lock().contains_key(id) {
                         break;
                     }
@@ -534,7 +546,7 @@ impl Engine {
     /// Baştan indir (dosya silinir).
     pub async fn redownload(&self, id: &str) {
         self.pause(&[id.to_string()]);
-        for _ in 0..50 {
+        for _ in 0..300 {
             if !self.inner.active.lock().contains_key(id) {
                 break;
             }
@@ -560,6 +572,7 @@ impl Engine {
     pub fn update(&self, id: &str, p: DownloadPatch) -> anyhow::Result<()> {
         let active = self.inner.active.lock().get(id).cloned();
         let mut err = None;
+        let mut moves: Vec<(PathBuf, PathBuf)> = vec![];
         self.inner.update(id, |d| {
             if let Some(u) = p.url.clone().filter(|u| !u.trim().is_empty()) {
                 // Adres yenileme: yarım parçalar korunur, sunucu aynı dosyayı vermeli.
@@ -581,14 +594,12 @@ impl Engine {
                         d.file_name = n;
                     }
                     if let Some(dir) = move_dir.clone() {
-                        let _ = std::fs::create_dir_all(&dir);
                         d.save_dir = dir;
                     }
-                    if old_part.exists() {
-                        let _ = move_file(&old_part, &d.part_path());
-                    }
-                    if d.status == Status::Completed && old_target.exists() {
-                        let _ = move_file(&old_target, &d.target_path());
+                    // Taşıma kilit dışında yapılır (başka diske kopyalama uzun sürebilir).
+                    moves.push((old_part, d.part_path()));
+                    if d.status == Status::Completed {
+                        moves.push((old_target, d.target_path()));
                     }
                     d.auto_name = false;
                 }
@@ -626,6 +637,16 @@ impl Engine {
                 d.show_complete_dialog = Some(s);
             }
         });
+        for (from, to) in moves {
+            if from.exists() && from != to {
+                if let Some(p) = to.parent() {
+                    let _ = std::fs::create_dir_all(p);
+                }
+                if let Err(e) = move_file(&from, &to) {
+                    tracing::warn!("{} taşınamadı: {e}", from.display());
+                }
+            }
+        }
         // Kuyruk sıra listesini eşitle.
         {
             let qid = self.inner.with(id, |d| d.queue_id.clone()).flatten();
@@ -965,6 +986,22 @@ impl Engine {
             d.error = Some(err_text(code, detail));
         });
     }
+}
+
+/// `dl.cdn.example.com` → `example.com` (iki etiketli ülke sonekleri için üç etiket).
+pub fn base_domain(url: &str) -> Option<String> {
+    let host = url::Url::parse(url).ok()?.host_str()?.to_lowercase();
+    if host.parse::<std::net::IpAddr>().is_ok() {
+        return Some(host);
+    }
+    let parts: Vec<&str> = host.split('.').collect();
+    let n = parts.len();
+    if n <= 2 {
+        return Some(host);
+    }
+    let two = format!("{}.{}", parts[n - 2], parts[n - 1]);
+    let take = if parts[n - 2].len() <= 3 && parts[n - 1].len() == 2 { 3 } else { 2 };
+    Some(if take == 3 { parts[n - 3..].join(".") } else { two })
 }
 
 pub fn mark_origin_pub(path: &Path, url: &str, referer: Option<&str>) {

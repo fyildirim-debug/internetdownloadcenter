@@ -421,6 +421,7 @@ const en: Dict = {
   'opt.vd.version': 'Version',
   'opt.vd.source': 'Source',
   'opt.vd.src.managed': 'IDC',
+  'opt.vd.src.bundled': 'Bundled',
   'opt.vd.src.system': 'System',
   'opt.vd.src.none': 'None',
   'opt.vd.installTools': 'Install / Update',
