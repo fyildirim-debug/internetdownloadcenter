@@ -149,8 +149,28 @@ async function send(msg, timeout = NATIVE_TIMEOUT_MS) {
   }
 }
 
+// Paketlenmemiş (klasörden yüklenmiş) eklentide IDC güncellenince klasördeki dosyalar yenilenir.
+// Diskteki manifest sürümü çalışan sürümden farklıysa eklenti kendini yeniden yükler; böylece
+// tarayıcıyı yeniden başlatmadan yeni sürüme geçilir. Mağazadan/xpi ile kurulanlarda dosyalar
+// değişmediği için bu denetim hiçbir şey yapmaz.
+async function reloadIfUpdatedOnDisk() {
+  try {
+    const r = await fetch(api.runtime.getURL('manifest.json'), { cache: 'no-store' });
+    const onDisk = (await r.json()).version;
+    if (onDisk && onDisk !== EXT_VERSION) {
+      console.info('IDC eklentisi güncellendi:', EXT_VERSION, '→', onDisk);
+      api.runtime.reload();
+      return true;
+    }
+  } catch (_) {
+    /* okunamadı: yok say */
+  }
+  return false;
+}
+
 async function hello() {
   await ready;
+  if (await reloadIfUpdatedOnDisk()) return true;
   try {
     const res = await send({ type: 'hello', version: EXT_VERSION, browser: state.browser }, NATIVE_TIMEOUT_MS);
     if (res.type === 'config' && res.config) {

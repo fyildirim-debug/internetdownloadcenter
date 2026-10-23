@@ -8,6 +8,7 @@ mod grabber;
 mod integration;
 mod state;
 mod tray;
+mod updates;
 mod windows;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -46,6 +47,9 @@ pub fn notify(app: &AppHandle, kind: &str, detail: &str) {
         "failed" => t(app, "İndirme başarısız", "Download failed"),
         "queue" => t(app, "Kuyruk tamamlandı", "Queue finished"),
         "checksum" => t(app, "Sağlama değeri UYUŞMUYOR", "Checksum MISMATCH"),
+        "update" => t(app, "Yeni sürüm var (tepsi menüsünden indirebilirsiniz)", "New version available (download from the tray menu)"),
+        "uptodate" => t(app, "Program güncel", "You have the latest version"),
+        "update_failed" => t(app, "Sürüm bilgisi alınamadı", "Could not check for updates"),
         _ => kind.to_string(),
     };
     let _ = app.notification().builder().title("Internet Download Center").body(format!("{body}: {detail}")).show();
@@ -190,20 +194,20 @@ fn forward_events(app: AppHandle, engine: Engine) {
 }
 
 /// yt-dlp haftada bir güncellenir (YouTube değişikliklerine ayak uydurmak için).
-fn maybe_update_tools(engine: Engine) {
+/// Araçları ve programın yeni sürümünü düzenli denetler. Uygulama haftalarca tepside açık
+/// kalsa da 6 saatte bir bakılır: yt-dlp haftada bir, program günde bir.
+fn background_updates(app: AppHandle, engine: Engine) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_secs(20)).await;
-        let s = engine.settings();
-        let tools = engine.tools();
-        let Some(yt) = tools.ytdlp() else { return };
-        if !s.media.auto_update_tools || tools.status().ytdlp.source == "system" {
-            return;
-        }
-        let _ = yt;
-        let stamp = tools.dir().join(".last-update");
-        let old = std::fs::metadata(&stamp).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).map(|e| e > Duration::from_secs(7 * 86400)).unwrap_or(true);
-        if old && tools.ensure(true).await.is_ok() {
-            let _ = std::fs::write(stamp, chrono::Utc::now().to_rfc3339());
+        loop {
+            let s = engine.settings();
+            if s.media.auto_update_tools && engine.tools().auto_update(Duration::from_secs(7 * 86400)).await {
+                let _ = app.emit("idc://tools", engine.tools().status());
+            }
+            if s.general.check_updates {
+                updates::check(&app, false).await;
+            }
+            tokio::time::sleep(Duration::from_secs(6 * 3600)).await;
         }
     });
 }
@@ -320,7 +324,7 @@ pub fn run() {
             clipboard::start(handle.clone());
             let h2 = handle.clone();
             std::thread::spawn(move || integration::refresh(&h2));
-            maybe_update_tools(engine.clone());
+            background_updates(handle.clone(), engine.clone());
 
             if engine.is_first_run() {
                 // İlk kurulumda başlangıçta çalıştırma ayarını uygula.

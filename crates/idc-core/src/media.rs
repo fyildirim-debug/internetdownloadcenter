@@ -137,6 +137,14 @@ fn kill_tree(pid: u32) {
 
 /// Sayfadaki videonun biçimlerini sorgular.
 pub async fn probe(tools: &crate::tools::Tools, settings: &Settings, req: &RequestInfo) -> anyhow::Result<MediaProbe> {
+    match probe_once(tools, settings, req).await {
+        // Site değişmiş olabilir: yt-dlp'yi güncelleyip bir kez daha dene.
+        Err(e) if e.to_string().starts_with("ytdlp_failed|") && tools.heal().await => probe_once(tools, settings, req).await,
+        r => r,
+    }
+}
+
+async fn probe_once(tools: &crate::tools::Tools, settings: &Settings, req: &RequestInfo) -> anyhow::Result<MediaProbe> {
     let yt = tools.ytdlp().ok_or_else(|| anyhow::anyhow!(err_text("tools_missing", "yt-dlp")))?;
     let mut cmd = tokio::process::Command::new(yt);
     let cookie = common_args(&mut cmd, tools, req, false);
@@ -335,8 +343,19 @@ pub fn default_selector(settings: &Settings) -> (String, bool) {
     }
 }
 
-/// yt-dlp ile indirme görevi.
+/// yt-dlp ile indirme görevi. yt-dlp başarısız olursa kendini günceller ve bir kez yeniden dener.
 pub async fn run(inner: Arc<Inner>, active: Arc<Active>, d: Download) -> Outcome {
+    match run_once(inner.clone(), active.clone(), d.clone()).await {
+        Outcome::Failed(msg) if msg.starts_with("ytdlp_failed|") && !active.cancel.is_cancelled() && inner.tools.heal().await => {
+            tracing::info!("{}: yt-dlp güncellendi, yeniden deneniyor", d.id);
+            inner.update(&d.id, |x| x.status = Status::Connecting);
+            run_once(inner, active, d).await
+        }
+        o => o,
+    }
+}
+
+async fn run_once(inner: Arc<Inner>, active: Arc<Active>, d: Download) -> Outcome {
     let DownloadKind::Media(spec) = &d.kind else { return Outcome::Failed(err_text("unknown", "")) };
     let settings = inner.settings.read().clone();
     if inner.tools.ytdlp().is_none() {

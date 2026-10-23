@@ -147,6 +147,47 @@ impl Tools {
         }
     }
 
+    /// Son başarılı güncellemeden bu yana geçen süre (hiç yapılmadıysa `None`).
+    pub fn since_last_update(&self) -> Option<std::time::Duration> {
+        std::fs::metadata(self.dir().join(".last-update")).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok())
+    }
+
+    fn mark_updated(&self) {
+        let _ = std::fs::create_dir_all(self.dir());
+        let _ = std::fs::write(self.dir().join(".last-update"), chrono::Utc::now().to_rfc3339());
+    }
+
+    /// Sistemdeki yt-dlp kullanılıyorsa güncellemeyi dağıtımın paket yöneticisine bırak.
+    fn updatable(&self) -> bool {
+        self.ytdlp().is_some() && self.status().ytdlp.source != "system"
+    }
+
+    /// Son güncelleme `older_than`'dan eskiyse yt-dlp'yi (ve gerekirse deno'yu) günceller.
+    pub async fn auto_update(&self, older_than: std::time::Duration) -> bool {
+        if !self.updatable() || self.is_busy() {
+            return false;
+        }
+        if self.since_last_update().map(|d| d < older_than).unwrap_or(false) {
+            return false;
+        }
+        match self.ensure(true).await {
+            Ok(_) => {
+                self.mark_updated();
+                true
+            }
+            Err(e) => {
+                tracing::warn!("araç güncellemesi başarısız: {e}");
+                false
+            }
+        }
+    }
+
+    /// yt-dlp bir siteden bilgi alamadığında çağrılır: site değişmiş olabilir, son 6 saatte
+    /// güncellenmediyse hemen günceller. Güncelleme yapıldıysa `true` (işlem yeniden denenmeli).
+    pub async fn heal(&self) -> bool {
+        self.auto_update(std::time::Duration::from_secs(6 * 3600)).await
+    }
+
     pub fn is_busy(&self) -> bool {
         *self.busy.lock()
     }
@@ -187,7 +228,10 @@ impl Tools {
 
         // deno: YouTube imza çözümü için.
         let deno = self.managed("deno");
-        if !deno.is_file() && which("deno").is_none() {
+        // IDC'nin indirdiği deno ayda bir yenilenir (YouTube imza çözümü yeni sürüm isteyebilir).
+        let deno_old = deno.is_file()
+            && std::fs::metadata(&deno).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).map(|e| e > std::time::Duration::from_secs(30 * 86400)).unwrap_or(false);
+        if (!deno.is_file() && which("deno").is_none()) || (update && deno_old) {
             if let Some(asset) = deno_asset() {
                 let url = format!("https://github.com/denoland/deno/releases/latest/download/{asset}");
                 let zip = crate::paths::temp_dir().join(asset);

@@ -122,6 +122,19 @@ ekler:
 | Komut satırı / "Birlikte aç" | `internet-download-center.exe <adres>` | `internet-download-center <adres>` |
 | Tepsi simgesi | Var | Var. GNOME'da "AppIndicator" uzantısı gerekir; sihirbaz uyarır |
 
+## Güncellemeler
+
+| Bileşen | Nasıl güncellenir |
+|---|---|
+| yt-dlp | Kurulum paketinde gelir. Haftada bir kendiliğinden güncellenir; uygulama tepside haftalarca açık kalsa da 6 saatte bir denetlenir. Bir site yt-dlp'yi bozarsa (ör. YouTube değişikliği) son 6 saatte güncellenmediyse hemen güncellenir ve işlem yeniden denenir. Yeni sürüm veri klasörüne iner ve paketle gelenden önceliklidir |
+| deno | İlk ihtiyaçta iner, ayda bir yenilenir |
+| ffmpeg | İlk ihtiyaçta iner (Linux'ta sistemdeki kullanılır); düzenli güncellenmez, gerekmez |
+| Chrome/Edge eklentisi | Program güncellenince eklenti klasörü yenilenir; eklenti diskteki yeni sürümü görünce kendini yeniden yükler |
+| Firefox/Zen eklentisi | `.xpi` tarayıcının içine kopyalandığı için yeni sürüm elle kurulur (imzalı dağıtımda tarayıcı kendisi günceller) |
+| Programın kendisi | Günde bir GitHub Sürümler sayfası denetlenir; yeni sürüm varsa bildirim gelir ve tepsi menüsünde "Yeni sürümü indir" çıkar. Seçenekler > Genel > "Güncellemeleri denetle" ile kapatılabilir |
+
+Sistemdeki yt-dlp kullanılıyorsa (dağıtım paketi) güncelleme dağıtımın paket yöneticisine bırakılır.
+
 ## Kullanım ipuçları
 
 - **Kalite seçmeden indirmek:** Videonun üstündeki düğmeden "Hızlı indir" ayardaki varsayılan

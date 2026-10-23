@@ -7,6 +7,18 @@ use idc_core::Engine;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(|a| a == "--update").unwrap_or(false) {
+        // Paketle gelen yt-dlp'yi taklit et: IDC_BUNDLED klasörünü kaynak say.
+        if let Ok(d) = std::env::var("IDC_BUNDLED") {
+            idc_core::tools::set_bundled_dir(d.into());
+        }
+        let t = idc_core::tools::Tools::new();
+        println!("önce: {:?}", t.status().ytdlp);
+        println!("güncellendi: {}", t.auto_update(std::time::Duration::ZERO).await);
+        println!("sonra: {:?}", t.status().ytdlp);
+        println!("hemen ikinci deneme (6 saat kuralı): {}", t.heal().await);
+        return Ok(());
+    }
     let url = args.get(1).cloned().unwrap_or_else(|| "https://www.youtube.com/watch?v=aqz-KE-bpKQ".into());
     let dir = std::env::temp_dir().join("idc-media-example");
     let engine = Engine::new(dir.join("cfg"));

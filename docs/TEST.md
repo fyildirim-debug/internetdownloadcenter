@@ -88,6 +88,15 @@ Chromium birlikte çalıştırıldı.
 YouTube engeli bu ortama özgüdür. Ev bağlantısında ve eklenti tarayıcı çerezlerini aktardığında
 bu engel beklenmez; yine de YouTube indirmesi gerçek bir tarayıcıyla burada denenemedi.
 
+## Güncellemeler
+
+| Senaryo | Sonuç |
+|---|---|
+| Paketle gelen yt-dlp varken güncelleme | Geçti: yeni sürüm veri klasörüne indi, kaynak `bundled` → `managed` oldu |
+| Hata anında güncelleme (6 saat kuralı) | Geçti: hemen ardından ikinci deneme indirme yapmadı |
+| Sürüm karşılaştırma (`v1.10.0` > `1.9.9`) | Birim testi geçti |
+| Chrome eklentisinin kendini yeniden yüklemesi | Doğrulanamadı: Playwright'ın komut satırıyla yüklediği eklentide düz `runtime.reload()` bile eklentiyi kapatıyor (test düzeneği kısıtı). "Paketlenmemiş öğe yükle" ile kurulan eklentide elle denenmeli |
+
 ## Masaüstü ortamları (Linux)
 
 | Ortam | Nasıl | Sonuç |

@@ -21,6 +21,7 @@ fn tr(app: &AppHandle, key: &str) -> String {
         "limit" => ("Hız sınırlayıcı", "Speed limiter"),
         "options" => ("Seçenekler…", "Options…"),
         "quit" => ("Çıkış", "Exit"),
+        "check" => ("Güncellemeleri denetle", "Check for updates"),
         _ => (key, key),
     };
     if tr { t.into() } else { e.into() }
@@ -37,6 +38,13 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     m.append(&CheckMenuItem::with_id(app, "limit", tr(app, "limit"), true, s.connection.speed_limit_enabled, None::<&str>)?)?;
     m.append(&PredefinedMenuItem::separator(app)?)?;
     m.append(&MenuItem::with_id(app, "options", tr(app, "options"), true, None::<&str>)?)?;
+    match crate::updates::available() {
+        Some(u) => {
+            let label = if crate::lang(&s) == "tr" { format!("Yeni sürümü indir ({})", u.latest) } else { format!("Download new version ({})", u.latest) };
+            m.append(&MenuItem::with_id(app, "update", label, true, None::<&str>)?)?;
+        }
+        None => m.append(&MenuItem::with_id(app, "check", tr(app, "check"), true, None::<&str>)?)?,
+    }
     m.append(&MenuItem::with_id(app, "quit", tr(app, "quit"), true, None::<&str>)?)?;
     Ok(m)
 }
@@ -63,6 +71,18 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                     refresh(app);
                 }
                 "options" => crate::windows::open1(app, "options", "tab", "general"),
+                "update" => {
+                    let url = crate::updates::available().map(|u| u.url).unwrap_or_else(|| crate::updates::RELEASES_PAGE.into());
+                    let _ = tauri_plugin_opener::open_url(url, None::<&str>);
+                }
+                "check" => {
+                    let app = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if crate::updates::check(&app, true).await.is_none() {
+                            crate::notify(&app, "update_failed", "");
+                        }
+                    });
+                }
                 "quit" => {
                     let app = app.clone();
                     tauri::async_runtime::spawn(async move { crate::quit(&app).await });
