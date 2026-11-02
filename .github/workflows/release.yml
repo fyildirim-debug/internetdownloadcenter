@@ -4,9 +4,22 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Sürüm etiketi (ör. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      publish:
+        description: "GitHub sürümü olarak yayımla"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
+
+env:
+  # Etiketle tetiklenince etiket adı, elle tetiklenince girilen etiket.
+  RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
 
 jobs:
   linux:
@@ -43,9 +56,9 @@ jobs:
       - name: Dosyaları topla
         run: |
           mkdir -p out
-          cp target/release/bundle/deb/*.deb out/InternetDownloadCenter_${GITHUB_REF_NAME#v}_amd64.deb || true
-          cp target/release/bundle/rpm/*.rpm out/InternetDownloadCenter-${GITHUB_REF_NAME#v}.x86_64.rpm || true
-          cp target/release/bundle/appimage/*.AppImage out/InternetDownloadCenter_${GITHUB_REF_NAME#v}_x86_64.AppImage || true
+          cp target/release/bundle/deb/*.deb out/InternetDownloadCenter_${RELEASE_TAG#v}_amd64.deb || true
+          cp target/release/bundle/rpm/*.rpm out/InternetDownloadCenter-${RELEASE_TAG#v}.x86_64.rpm || true
+          cp target/release/bundle/appimage/*.AppImage out/InternetDownloadCenter_${RELEASE_TAG#v}_x86_64.AppImage || true
           cp extension/build/idc-chromium.zip out/
           cp extension/build/idc-firefox.xpi out/
           cp extension/build/idc-firefox-signed.xpi out/ 2>/dev/null || true
@@ -77,7 +90,7 @@ jobs:
       - name: Taşınabilir zip
         shell: pwsh
         run: |
-          $ver = "${{ github.ref_name }}".TrimStart("v")
+          $ver = "$env:RELEASE_TAG".TrimStart("v")
           $dir = "portable/InternetDownloadCenter"
           New-Item -ItemType Directory -Force -Path "$dir/extension" | Out-Null
           Copy-Item target/release/internet-download-center.exe $dir/
@@ -99,7 +112,7 @@ jobs:
   release:
     name: GitHub sürümü
     needs: [linux, windows]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || inputs.publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -108,5 +121,8 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Internet Download Center ${{ env.RELEASE_TAG }}
           files: dist/*
           generate_release_notes: true
