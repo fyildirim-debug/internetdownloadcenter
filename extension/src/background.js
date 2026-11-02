@@ -825,6 +825,14 @@ async function onMenu(info, tab) {
         break;
       case 'idc-video': {
         const src = info.srcUrl || '';
+        // Akış/arama sayfasında sağ tıklanan videonun kendi gönderi adresini içerik betiğinden al.
+        let pageUrl = info.frameUrl || info.pageUrl || (tab && tab.url) || '';
+        try {
+          const r = await api.tabs.sendMessage(tabId, { cmd: 'mediaPermalink' }, { frameId: info.frameId || 0 });
+          if (r && r.url) pageUrl = r.url;
+        } catch (_) {
+          /* içerik betiği yok: sayfa adresi */
+        }
         if (/^https?:/i.test(src) && !isMediaSite(pageUrl) && !/\.(m3u8|mpd)(\?|$)/i.test(src)) {
           await forcedDownload(src, pageUrl, tabId);
         } else {

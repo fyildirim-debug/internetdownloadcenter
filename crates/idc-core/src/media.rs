@@ -424,7 +424,8 @@ async fn run_once(inner: Arc<Inner>, active: Arc<Active>, d: Download) -> Outcom
         .arg("--print").arg("after_move:IDCFILE|%(filepath)s")
         .arg("--no-mtime")
         .arg("-P").arg(&d.save_dir)
-        .arg("-o").arg(format!("{}.%(ext)s", stem.replace('%', "%%")))
+        .arg("-o")
+        .arg(if spec.title.is_some() { format!("{}.%(ext)s", stem.replace('%', "%%")) } else { "%(title).150B [%(id)s].%(ext)s".to_string() })
         .arg("--")
         .arg(&source);
     configure_process(&mut cmd);

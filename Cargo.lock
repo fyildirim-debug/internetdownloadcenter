@@ -2087,7 +2087,7 @@ dependencies = [
 
 [[package]]
 name = "idc-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2129,7 +2129,7 @@ dependencies = [
 
 [[package]]
 name = "idc-host"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "dirs 6.0.0",
  "libc",
@@ -2212,7 +2212,7 @@ dependencies = [
 
 [[package]]
 name = "internet-download-center"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "arboard",

@@ -324,7 +324,8 @@ pub fn add_media(app: &AppHandle, r: &MediaRequest, format_id: String, audio_onl
     let st = state(app);
     let src = media_source(r);
     let settings = st.engine.settings();
-    let title = file_name.clone().or_else(|| r.title.clone()).filter(|t| !t.trim().is_empty()).unwrap_or_else(|| "video".into());
+    // Başlık bilinmiyorsa (ör. akış sayfasından gönderi) dosya adını yt-dlp videonun gerçek başlığından koyar.
+    let title = file_name.clone().or_else(|| r.title.clone()).filter(|t| !t.trim().is_empty());
     let spec = MediaSpec {
         page_url: src.clone(),
         media_url: r.media_url.clone(),
@@ -332,7 +333,7 @@ pub fn add_media(app: &AppHandle, r: &MediaRequest, format_id: String, audio_onl
         audio_only,
         audio_format: if audio_only { Some(settings.media.audio_format.clone()) } else { None },
         container: None,
-        title: Some(title.clone()),
+        title: title.clone(),
         thumbnail,
         impersonate: false,
         subtitles,
@@ -340,7 +341,7 @@ pub fn add_media(app: &AppHandle, r: &MediaRequest, format_id: String, audio_onl
     let category = if audio_only { "music" } else { "video" };
     let add = AddRequest {
         request: media_request_info(r, &src),
-        file_name: Some(title),
+        file_name: title,
         save_dir,
         category: Some(category.into()),
         size_hint,

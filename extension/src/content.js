@@ -62,9 +62,92 @@
     return out;
   }
 
+  // ------------------------------------------------------------ videonun kendi adresi
+
+  /**
+   * Akış, arama ve profil sayfalarında adres çubuğu videonun değil sayfanın adresidir
+   * (ör. x.com/search?q=…). Videonun içinde bulunduğu gönderinin kalıcı bağlantısını bulur;
+   * bulunamazsa `null` döner ve sayfa adresi kullanılır.
+   */
+  function mediaPermalink(media) {
+    if (!media || !media.closest) return null;
+    const host = location.hostname.replace(/^(www|m|mobile)\./, '');
+    const abs = (a) => (a && a.href ? a.href : null);
+    const pick = (root, sel, test) => {
+      if (!root) return null;
+      for (const a of root.querySelectorAll(sel)) {
+        if (!test || test(a)) return a;
+      }
+      return null;
+    };
+    try {
+      if (host === 'x.com' || host === 'twitter.com') {
+        // Gönderinin kendi bağlantısı zaman damgasını (<time>) saran bağlantıdır; alıntılanan
+        // gönderilerin bağlantıları ayrıca vardır, önce zamanlı olanı al.
+        const art = media.closest('article');
+        const a = pick(art, 'a[href*="/status/"]', (x) => x.querySelector('time')) || pick(art, 'a[href*="/status/"]');
+        const href = abs(a);
+        if (href) {
+          const m = /^(https?:\/\/[^/]+\/[^/]+\/status\/\d+)/.exec(href);
+          return m ? m[1] : href;
+        }
+        return null;
+      }
+      if (host.endsWith('instagram.com')) {
+        if (/^\/(p|reel|reels|tv)\//.test(location.pathname)) return null;
+        const art = media.closest('article') || media.closest('[role="presentation"]');
+        return abs(pick(art, 'a[href*="/p/"], a[href*="/reel/"], a[href*="/tv/"]'));
+      }
+      if (host.endsWith('facebook.com')) {
+        const art = media.closest('[role="article"]') || media.closest('[data-pagelet]');
+        return abs(pick(art, 'a[href*="/videos/"], a[href*="/reel/"], a[href*="/watch/?v="], a[href*="/watch?v="]'));
+      }
+      if (host.endsWith('reddit.com')) {
+        const post = media.closest('shreddit-post');
+        if (post && post.getAttribute('permalink')) return new URL(post.getAttribute('permalink'), location.origin).href;
+        const art = media.closest('article') || media.closest('[data-testid="post-container"]');
+        return abs(pick(art, 'a[href*="/comments/"]'));
+      }
+      if (host.endsWith('tiktok.com')) {
+        if (/\/video\/\d+/.test(location.pathname)) return null;
+        const item = media.closest('[data-e2e="recommend-list-item-container"], [data-e2e="user-post-item"], article, section');
+        return abs(pick(item, 'a[href*="/video/"]'));
+      }
+      if (host.endsWith('youtube.com')) {
+        if (location.pathname === '/watch' || location.pathname.startsWith('/shorts/')) return null;
+        const item = media.closest('ytd-rich-item-renderer, ytd-video-renderer, ytd-compact-video-renderer, ytd-reel-item-renderer, ytd-grid-video-renderer, ytm-shorts-lockup-view-model');
+        return abs(pick(item, 'a#thumbnail[href], a[href*="/watch?v="], a[href*="/shorts/"]'));
+      }
+      if (host.endsWith('vimeo.com') || host.endsWith('dailymotion.com')) {
+        const item = media.closest('article, li, [data-testid]');
+        return abs(pick(item, host.endsWith('vimeo.com') ? 'a[href^="https://vimeo.com/"], a[href^="/"]' : 'a[href*="/video/"]', (a) => /\/\d+|\/video\//.test(a.getAttribute('href') || '')));
+      }
+    } catch (_) {
+      /* DOM beklenmedik: sayfa adresine düş */
+    }
+    return null;
+  }
+
+  // Sağ tıklanan video (bağlam menüsü için). Videonun üstünde saydam katman olabilir,
+  // bu yüzden imlecin altındaki öğelere bakılır.
+  let lastCtxMedia = null;
+  window.addEventListener(
+    'contextmenu',
+    (e) => {
+      let m = e.target && e.target.closest ? e.target.closest('video, audio') : null;
+      if (!m && document.elementsFromPoint) m = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.tagName === 'VIDEO' || x.tagName === 'AUDIO') || null;
+      lastCtxMedia = m;
+    },
+    true
+  );
+
   ext.runtime.onMessage.addListener((m, _sender, sendResponse) => {
     if (m && m.cmd === 'collectLinks') {
       sendResponse({ links: collectLinks(!!m.selectionOnly) });
+      return false;
+    }
+    if (m && m.cmd === 'mediaPermalink') {
+      sendResponse({ url: mediaPermalink(lastCtxMedia) });
       return false;
     }
     return false;
@@ -358,7 +441,8 @@
     menuOpen = true;
     menu.textContent = '';
     menu.classList.add('open');
-    const pageUrl = location.href;
+    // Akış/arama sayfasında videonun kendi gönderisinin adresi (ör. x.com/kullanıcı/status/…).
+    const pageUrl = mediaPermalink(current) || location.href;
     const src = current.currentSrc || current.src || '';
     const blobSrc = /^(blob|mediasource):/i.test(src);
     const info = await sendBg({ cmd: 'panelInfo', pageUrl, blobSrc });
@@ -375,7 +459,8 @@
     if (/^https?:/i.test(src) && !direct.some((d) => d.url === src)) {
       direct = [{ url: src, fileName: decodeURIComponent(src.split('?')[0].split('/').pop() || 'video'), size: 0 }].concat(direct);
     }
-    const title = document.title;
+    // Gönderi bağlantısı bulunduysa sayfa başlığı (ör. "Arama / X") videonun adı değildir.
+    const title = pageUrl === location.href ? document.title : null;
     if (direct.length) {
       menu.appendChild(el('div', 'h', msg('directFiles')));
       for (const d of direct.slice(0, 8)) {
